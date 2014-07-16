@@ -59,7 +59,7 @@ static QGLPixelBuffer* pbuffer = NULL;
 ///Global to this file.  Used to get OpenGL context
 static QGLWidget* widget = NULL; 
 
-VirtualTip::VirtualTip(RangeImage* newTip, QGLContext* newContext,
+VirtualTip::VirtualTip(RangeImage *newTip, QGLContext* newContext,
 	QObject* parent):
 	QObject(parent)
 {
@@ -595,6 +595,8 @@ VirtualTip::scriptableCreate(QScriptContext* scriptContext,
 		qDebug() << "Returning a null object.";
 		return QScriptValue();
 	}
+
+    // TODO: FIGURE OUT HOW TO WORK WITH SMART POINTER IN VirtualTip
 
 	RangeImage* argument0 = qscriptvalue_cast<RangeImage*>(
 		scriptContext->argument(0) );

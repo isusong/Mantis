@@ -38,7 +38,8 @@ statPlot::statPlot(QWidget* parent):
     (void) new QwtPlotPanner( canvas() ); //Inherits from QWidget.
     (void) new QwtPlotMagnifier( canvas() ); //Inherits from QObject.
 	//Style the plot box
-	canvas()->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+    QFrame *frame = qobject_cast<QFrame *>(canvas());
+    if (frame) frame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
 	//Title the axes.
 	setAxisTitle(xBottom, tr("x"));
 	setAxisTitle(yLeft, tr("z"));

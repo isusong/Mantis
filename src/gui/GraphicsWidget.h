@@ -49,41 +49,7 @@ class GraphicsWidget: public QGLWidget
 {
 	Q_OBJECT
 
-  protected:
-	///QT Pointer to model object.
-	QPointer<GenericModel> model;
-	///Cached bounding box dimensions from model.
-	float bbX, bbY, bbZ;
-	///Where to put the camera to see the whole model.
-	float zRecommendedView;
-	///Whether or not I should draw the world coordinate system.
-	bool drawCS;
-
-	//Mouse members
-	///Mouse position as of most recent click.
-	QPoint capturedPos;
-	///Optional multipliers for mouse movements
-	QVector3D mouseMult;
-	///Matrix for scene translations.
-	QMatrix4x4 sceneTranslation;
-	///Matrix for scene rotations.
-	QMatrix4x4 sceneRotation;
-	///TrackBall object for scene rotations.
-	TrackBall sphere;
-	///Identity quaternion for passing into TrackBall.
-	QQuaternion quat;
-	///Timer for updating openGL regularly.
-	QTimer* timer;
-
-	//Protected member functions
-	///Perform init functions.
-    void initializeGL();
-	///Do the actual rendering.
-    void paintGL();
-	///Convert back from screen to normalized device coordinates.
-	QPointF screenToNDC(const QPoint& point);
-
-  public:
+public:
     ///Create an empty scene.
 	GraphicsWidget(QWidget* parent = 0);
 	virtual ~GraphicsWidget();
@@ -98,7 +64,27 @@ class GraphicsWidget: public QGLWidget
 	void mouseDoubleClickEvent(QMouseEvent* event);
 	void setMouseMultipliers(QVector3D newMult);
 
-  public slots:
+    void setWindowSelected(bool sel);
+    bool getWindowSelected() { return _showWindowSelected; }
+
+    const QVector3D& getTrans() { return _trans; }
+    const QVector3D& getRot() { return _rot; }
+    double getTransX();
+    double getTransY();
+    double getTransZ();
+    double getYaw();
+    double getPitch();
+    double getRoll();
+    void setTrans(const QVector3D &trans);
+    void setRot(const QVector3D &rot);
+    void setTransX(double t);
+    void setTransY(double t);
+    void setTransZ(double t);
+    void setYaw(double deg);
+    void setPitch(double deg);
+    void setRoll(double deg);
+
+public slots:
 	///Update sceneRotation and call updateGL().
 	void updateScene();
 	///How to react when window is resized.
@@ -108,9 +94,60 @@ class GraphicsWidget: public QGLWidget
 	///Set background color.
 	void setBackgroundColor(QColor color);
 
-  signals:
+signals:
 	///Window coordinates where user clicked.
 	void doubleClicked(int x, int y);
+    void onLButtonDown(int x, int y);
+    void onChangedTranslation(QVector3D trans);
+    void onChangedRotation(QVector3D rot);
+
+protected:
+    //Protected member functions
+    ///Perform init functions.
+    void initializeGL();
+    ///Do the actual rendering.
+    void paintGL();
+    ///Convert back from screen to normalized device coordinates.
+    QPointF screenToNDC(const QPoint& point);
+
+    void drawWindowSelected();
+
+    void setModelView();
+
+protected:
+
+  //Member variables.
+  bool _showWindowSelected;
+
+  ///QT Pointer to model object.
+  QPointer<GenericModel> _model;
+  ///Cached bounding box dimensions from model.
+  float _bbX, _bbY, _bbZ;
+  ///Where to put the camera to see the whole model.
+  float _zRecommendedView;
+  ///Whether or not I should draw the world coordinate system.
+  bool _drawCS;
+
+  //Mouse members
+  ///Mouse position as of most recent click.
+  QPoint _capturedPos;
+  ///Optional multipliers for mouse movements
+  QVector3D _mouseMult;
+  ///Matrix for scene translations.
+  //QMatrix4x4 _sceneTranslation;
+  ///Matrix for scene rotations.
+  //QMatrix4x4 _sceneRotation;
+  ///TrackBall object for scene rotations.
+  TrackBall _sphere;
+  ///Identity quaternion for passing into TrackBall.
+  //QQuaternion _quat;
+  QQuaternion _quatRotation;
+
+  QVector3D _rot;
+  QVector3D _trans;
+  ///Timer for updating openGL regularly.
+  QTimer* _timer;
+
 };
 
 #endif //! defined __GRAPHICSWIDGET_H__

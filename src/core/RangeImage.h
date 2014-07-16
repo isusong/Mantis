@@ -190,4 +190,6 @@ class RangeImage: public QObject
 
 Q_DECLARE_METATYPE(RangeImage*)
 
+typedef QSharedPointer<RangeImage> PRangeImage;
+
 #endif //!defined __RANGEIMAGE_H__

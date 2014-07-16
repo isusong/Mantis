@@ -30,42 +30,28 @@
 #include <QFileInfo>
 #include <QVBoxLayout>
 #include <QMdiArea>
-#include "StatisticsWidget.h"
+#include <QDockWidget>
 #include <QAction>
+#include <QSettings>
+
+#include "StatisticsWidget.h"
 #include "InvestigatorSubWidget.h"
+#include "SplitCmpViewCtrlsWidget.h"
+#include "SplitCmpThumbLoaderWidget.h"
 
 class Investigator: public QMainWindow
 {
     Q_OBJECT
 
-	//Data Objects.
-	QString lastDirectory; ///< Stores last directory of navigation.
-	QFileInfo fileInfo;
-	bool slotFilled_1; ///< Is the first window slot filled?
-	bool slotFilled_2; ///< Is the second window slot filled?
-
-	//Gui Objects.
-	QWidget* center; ///< Placeholder for central widget.
-	QVBoxLayout* mainLayout;
-	QMdiArea* area;
-	StatisticsWidget* stat;
-	QMenu* fileMenu;
-	QAction* openTipAction;
-	QAction* openPlateAction;
-	QMenu* toolsMenu;
-	QAction* tileAction;
-	QAction* cascadeAction;
-	QAction* statSettingsAction;
-
-	//Private functions.
-	void makeConnections();
-	void assemble();
-    
-  public:
+public:
     Investigator(QWidget* parent = 0);
     virtual ~Investigator();
 
-  public slots:
+    QMdiSplitCmpWnd* getTopSplitCmp();
+    QMdiArea* getMdiArea() { return _area; }
+
+public slots:
+    void showSplitComparison();
 	void openTip();
 	void openPlate();
 	void assignSlot(InvestigatorSubWidget* window); 
@@ -74,6 +60,46 @@ class Investigator: public QMainWindow
 	void emptySlot_2(); ///< Update slot 2 to empty status.
 	void postStatusMessage(QString msg);
 	void activateStatSettings();
+    void slotSplitItemClicked(QListWidgetItem * item);
+    void slotSplitCmpWndClosed();
+
+protected:
+    virtual void closeEvent(QCloseEvent *closeEvent);
+    void saveDocStates(QDockWidget *doc);
+    void loadDocStates(QDockWidget *doc);
+    void initStyles();
+    void makeConnections();
+    void assemble();
+    void createSplitCompareDockWindows();
+    unsigned int getCurrentWindows(std::vector<InvestigatorSubWidget*> *pv);
+
+protected:
+    //Data Objects.
+    QString _lastDirectory; ///< Stores last directory of navigation.
+    QFileInfo _fileInfo;
+    bool _slotFilled_1; ///< Is the first window slot filled?
+    bool _slotFilled_2; ///< Is the second window slot filled?
+
+    //Gui Objects.
+    QWidget* _center; ///< Placeholder for central widget.
+    QVBoxLayout* _mainLayout;
+    QMdiArea* _area;
+    StatisticsWidget* _stat;
+    QMenu* _fileMenu;
+    QAction* _openTipAction;
+    QAction* _openPlateAction;
+    QMenu* _viewMenu;
+    QMenu* _toolsMenu;
+    QAction* _tileAction;
+    QAction* _cascadeAction;
+    QAction* _statSettingsAction;
+    QAction* _showSplitCompareAction;
+
+    QDockWidget* _dockCmpViewCtrls;
+    SplitCmpViewCtrlsWidget* _splitCmpViewCtrls;
+
+    QDockWidget* _dockCmpThumbLoader;
+    SplitCmpThumbLoaderWidget* _splitCmpThumbLoader;
 };
 
 #endif //!defined __INVESTIGATOR_H__

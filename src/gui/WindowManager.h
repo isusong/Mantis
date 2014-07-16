@@ -89,11 +89,11 @@ class WindowManager: public QObject
 	 * For instance, for a plate, z is very small.  In this
 	 * case, pass flatDimension = 2; this will make navigation speed up
 	 * in the z direction so zoom in does not take forever.
-	 * If no dimensions are flat, pass in -1 or a value that is not
+     * If no dimensions are flat, pass in -1 or a value that is not
 	 * 0, 1, or 2.
 	 */
 	QString getRangeImageWindow(const QString& name,
-		RangeImage* rangeImage, int flatDimension = -1, 
+        PRangeImage rangeImage, int flatDimension = -1,
 		int width = 500, int height = 500);
 
 	///Creates and shows an Investigator GUI.

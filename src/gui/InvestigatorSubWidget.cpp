@@ -26,7 +26,9 @@
 #include "InvestigatorSubWidget.h"
 #include <qwt_text.h>
 
-InvestigatorSubWidget::InvestigatorSubWidget(RangeImage* rangeImage, 
+//=======================================================================
+//=======================================================================
+InvestigatorSubWidget::InvestigatorSubWidget(PRangeImage rangeImage,
 	QWidget *parent):
 	QWidget(parent)
 {
@@ -36,7 +38,7 @@ InvestigatorSubWidget::InvestigatorSubWidget(RangeImage* rangeImage,
 	//Create the gui objects.
 	grid = new QGridLayout(this);
 	horizontalSplitter = new QSplitter(this);
-	graphics = new RangeImageViewer(rangeImage, -1, 330, 250, this);
+    graphics = new RangeImageViewer(rangeImage, true, -1, 330, 250, this);
 	verticalSplitter = new QSplitter(Qt::Vertical, this);
 	plot = new statPlot(this);
 	controls = new QGroupBox(this);
@@ -75,14 +77,27 @@ InvestigatorSubWidget::InvestigatorSubWidget(RangeImage* rangeImage,
 	assemble();
 }
 
+//=======================================================================
+//=======================================================================
 InvestigatorSubWidget::~InvestigatorSubWidget()
 {
 	delete profile;
 	//everything else is parented and will get auto-deleted.
 }
 
-void
-InvestigatorSubWidget::makeConnections()
+//=======================================================================
+//=======================================================================
+PRangeImage InvestigatorSubWidget::getRangeImage()
+{
+    if (!graphics) return PRangeImage();
+    if (!graphics->getRenderer()) return PRangeImage();
+
+    return graphics->getRenderer()->getModel();
+}
+
+//=======================================================================
+//=======================================================================
+void InvestigatorSubWidget::makeConnections()
 {
 	connect(flipButton, SIGNAL(pressed()), this, SLOT(flip()));
 
@@ -91,8 +106,9 @@ InvestigatorSubWidget::makeConnections()
 		this, SIGNAL(profileChanged(Profile*, bool)));
 }
 
-void
-InvestigatorSubWidget::assemble()
+//=======================================================================
+//=======================================================================
+void InvestigatorSubWidget::assemble()
 {
 	//Assemble widget.
 	verticalSplitter->addWidget(controls);
@@ -106,8 +122,9 @@ InvestigatorSubWidget::assemble()
 	setLayout(grid);
 }
 
-void
-InvestigatorSubWidget::stalePlots()
+//=======================================================================
+//=======================================================================
+void InvestigatorSubWidget::stalePlots()
 {
 	plot->setProfile(NULL);
 	plot->setSearchWindow(0, 0);
@@ -115,15 +132,17 @@ InvestigatorSubWidget::stalePlots()
 	plot->setEnabled(false);
 }
 
-void
-InvestigatorSubWidget::setSearchWindow(int loc, int width)
+//=======================================================================
+//=======================================================================
+void InvestigatorSubWidget::setSearchWindow(int loc, int width)
 {
 	if (NULL != profile)
 		plot->setSearchWindow(loc, width);
 }
 
-void
-InvestigatorSubWidget::flip()
+//=======================================================================
+//=======================================================================
+void InvestigatorSubWidget::flip()
 {
 	if (NULL != profile)
 	{

@@ -25,11 +25,11 @@
 
 #include "TipWidget.h"
 
-TipWidget::TipWidget(RangeImage* rangeImage, QWidget *parent):
+TipWidget::TipWidget(PRangeImage rangeImage, QWidget *parent):
 	InvestigatorSubWidget(rangeImage, parent)
 {
 	//Create the data objects.
-	tip = new VirtualTip(rangeImage, NULL, this);
+    tip = new VirtualTip(rangeImage.data(), NULL, this);
 
 	//Create the gui objects.
 	controlsLayout = new QGridLayout(controls);

@@ -44,13 +44,7 @@ class GenericModel: public QObject
 {
 	Q_OBJECT
 
-  protected:
-	//Minimum bounding box corner.
-	QVector3D bbMin;
-	///Maximum bounding box corner.
-	QVector3D bbMax;
-
-  public:
+public:
 	///Create a parented model
 	GenericModel(QWidget *parent = 0);
 	virtual ~GenericModel();
@@ -60,15 +54,25 @@ class GenericModel: public QObject
 
 	//Getters & setters.
 	///Get minimum corner of bounding box.
-	inline const QVector3D& getBbMin()
-		{return bbMin;}
+    const QVector3D& getBbMin() const {return _bbMin;}
 	///Get maximum corner of bounding box.
-	inline const QVector3D& getBbMax()
-		{return bbMax;}
+    const QVector3D& getBbMax() const {return _bbMax;}
+    QVector3D getBbCenter() const { return _bbMax - _bbMin; }
+
+
+    void setBbMin(const QVector3D &v) { _bbMin = v; }
+    void setBbMax(const QVector3D &v) { _bbMax = v; }
 
   signals:
 	///Tell rendering class it needs to update.
 	void updateGL();
+
+
+protected:
+  //Minimum bounding box corner.
+  QVector3D _bbMin;
+  ///Maximum bounding box corner.
+  QVector3D _bbMax;
 };
 
 #endif //!defined __GENERICMODEL_H__

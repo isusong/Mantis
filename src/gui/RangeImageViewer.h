@@ -39,32 +39,6 @@ class RangeImageViewer: public QWidget
 {
 	Q_OBJECT
 
-	int width;
-	int height;
-	QGridLayout* mainGrid; 
-	GraphicsWidget* graphics;
-	RangeImageRenderer* renderer;
-	QToolBar* viewTools;
-
-	//Shading modes group
-	QActionGroup* actionGroup;
-	QAction* shaded;
-	QAction* wireframe;
-	QAction* textured;
-	QAction* heightMapped;
-	QSignalMapper* signalMapper;
-
-	//Csys buttons.
-	QAction* localCsys;
-	QAction* worldCsys;
-
-	//Background color button.
-	QAction* background;
-
-	void initActions();
-	void makeConnections();
-	void assemble();
-
   public:
 	///Create a viewer for a RangeImage.
 	/**
@@ -78,9 +52,16 @@ class RangeImageViewer: public QWidget
 	 * If no dimensions are flat, pass in -1 or a value that is not
 	 * 0, 1, or 2.
 	 */
-	RangeImageViewer(RangeImage* rangeImage, int flatDimension = -1, 
+    RangeImageViewer(PRangeImage rangeImage, bool useViewTools=true, int flatDimension = -1,
 		int w = 500, int h = 500, QWidget* parent = 0);
 	virtual ~RangeImageViewer();
+
+    void setModel(PRangeImage ri);
+    void setWindowSelected(bool sel);
+    bool getIsWindowSelected();
+
+    GraphicsWidget* getGraphicsWidget() { return _graphics; }
+    RangeImageRenderer* getRenderer() { return _renderer; }
 
   public slots:
 	///Change the background color for the render.
@@ -103,23 +84,58 @@ class RangeImageViewer: public QWidget
 	 */
 	void rotate(float xAxis, float yAxis, float zAxis);
 	//Pass throughs for Selection object.
-	inline QPointF& getBasis() {return renderer->getBasis();}
+    inline QPointF& getBasis() {return _renderer->getBasis();}
 	///Use with double clicked signal. Schedules an "unprojection."
 	inline void updateSelection(int winX, int winY)
-		{renderer->scheduleSelectionUpdate(winX, winY);}
+        {_renderer->scheduleSelectionUpdate(winX, winY);}
 	///Use with spin box update.  Only schedules a selection redraw.
 	inline void redrawSelection(float x, float y)
-		{renderer->redrawSelection(x, y);}
+        {_renderer->redrawSelection(x, y);}
 	inline void setSelectionEnabled(bool status)
-		{renderer->setSelectionEnabled(status);}
+        {_renderer->setSelectionEnabled(status);}
 	inline void setSelectionMode(Selection::drawModes mode)
-		{renderer->setSelectionMode(mode);}
+        {_renderer->setSelectionMode(mode);}
 	inline void setSelectionMultiplier(int mult)
-		{renderer->setSelectionMultiplier(mult);}
+        {_renderer->setSelectionMultiplier(mult);}
+
+    void onLButtonDownGraphicsSlot(int x, int y);
 
   signals:
 	///Coordinates where user clicked on 3D window.
 	void doubleClicked(int x, int y);
+    void onLButtonDown(int x, int y);
+
+protected:
+    void initActions();
+    void makeConnections();
+    void assemble();
+
+    virtual void mousePressEvent(QMouseEvent *event);
+
+protected:
+    int _width;
+    int _height;
+    QGridLayout* _mainGrid;
+    GraphicsWidget* _graphics;
+    RangeImageRenderer* _renderer;
+    QToolBar* _viewTools;
+
+    //Shading modes group
+    QActionGroup* _actionGroup;
+    QAction* _shaded;
+    QAction* _wireframe;
+    QAction* _textured;
+    QAction* _heightMapped;
+    QSignalMapper* _signalMapper;
+
+    //Csys buttons.
+    QAction* _localCsys;
+    QAction* _worldCsys;
+
+    //Background color button.
+    QAction* _background;
+
+    bool _useViewTools;
 };
 
 #endif //!defined __RANGEIMAGEVIEWER_H__

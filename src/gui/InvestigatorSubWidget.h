@@ -47,30 +47,12 @@ class InvestigatorSubWidget: public QWidget
 {
 	Q_OBJECT
 
-protected:
-	//Data objects.
-	Profile* profile; ///< The virtual mark or cross-section.
-
-	//Gui Objects.
-	QGridLayout* grid;
-	QSplitter* horizontalSplitter; ///< Main splitter.
-	RangeImageViewer* graphics; ///< 3D view
-	QSplitter* verticalSplitter; ///< Right-hand splitter.
-	statPlot* plot; ///< Profile plot
-	QGroupBox* controls; ///< Holds the relevant controls
-	QToolButton* flipButton; ///< Flips the profile.
-
-	//Private member functions
-	///Make the GUI connections.
-	virtual void makeConnections();
-	///Assemble the GUI.
-	virtual void assemble();
-	///Make the plots go stale.
-	void stalePlots();
-
 public:
-	InvestigatorSubWidget(RangeImage* rangeImage, QWidget *parent = 0);
+    InvestigatorSubWidget(PRangeImage rangeImage, QWidget *parent = 0);
 	virtual ~InvestigatorSubWidget();
+
+    virtual void setRangeImage(PRangeImage rangeImage) {}
+    virtual PRangeImage getRangeImage();
 
 public slots:
 	void flip(); ///< Flips the profile
@@ -82,5 +64,26 @@ signals:
 	void statusMessage(QString msg);
 	///Announce that the profile has changed.
 	void profileChanged(Profile* profile, bool masked);
+
+protected:
+    //Data objects.
+    Profile* profile; ///< The virtual mark or cross-section.
+
+    //Gui Objects.
+    QGridLayout* grid;
+    QSplitter* horizontalSplitter; ///< Main splitter.
+    RangeImageViewer* graphics; ///< 3D view
+    QSplitter* verticalSplitter; ///< Right-hand splitter.
+    statPlot* plot; ///< Profile plot
+    QGroupBox* controls; ///< Holds the relevant controls
+    QToolButton* flipButton; ///< Flips the profile.
+
+    //Private member functions
+    ///Make the GUI connections.
+    virtual void makeConnections();
+    ///Assemble the GUI.
+    virtual void assemble();
+    ///Make the plots go stale.
+    void stalePlots();
 };
 #endif //!defined __INVESTIGATORSUBWIDGET_H__

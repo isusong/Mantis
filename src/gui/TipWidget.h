@@ -64,7 +64,7 @@ class TipWidget: public InvestigatorSubWidget
 	void assemble();
 
 public:
-	TipWidget(RangeImage* rangeImage, QWidget *parent = 0);
+    TipWidget(PRangeImage rangeImage, QWidget *parent = 0);
 	virtual ~TipWidget();
 
 public slots:

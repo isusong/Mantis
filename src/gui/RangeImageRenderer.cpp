@@ -27,55 +27,90 @@
 #include "RangeImageRenderer.h"
 #include "GraphicsWidget.h"
 #include <cfloat>
+#include "../core/logger.h"
 
-RangeImageRenderer::RangeImageRenderer(RangeImage* newModel, 
+//=======================================================================
+//=======================================================================
+RangeImageRenderer::RangeImageRenderer(PRangeImage newModel,
 	QWidget *parent):
-	GenericModel(parent)
+    GenericModel(parent),
+    _selection (NULL)
 {
-	//Set the model.
-	model = newModel;
-	width = model->getWidth();
-	height = model->getHeight();
-	pixelSizeX = model->getPixelSizeX();
-	pixelSizeY = model->getPixelSizeY();
-	depth = model->getDepth();
-	mask = model->getMask();
-	computeBoundingBox();
-
 	//Default downsample.
-	skip = 6;
+    _skip = 6;
 
-	//Downsample the texture.
-	QImage cachedTexture = model->getTexture();
-	int scaleFactor = skip/3;
-	if (1 > scaleFactor) scaleFactor = 1;
-	int scaledHeight = cachedTexture.height()/scaleFactor;
-	scaledTexture = 
-		cachedTexture.scaledToHeight(scaledHeight);
+    //Set the model.
+    _width = 0;
+    _height = 0;
+    _pixelSizeX = 0;
+    _pixelSizeY = 0;
+    //_depth
+    setModel(newModel);
 
 	//Default drawing mode.
-	currentShaderProgram = 0;
-	drawCS = true;
-	lightOrigin.setX(-1000);
-	lightOrigin.setY(-500);
-	lightOrigin.setZ(1000);
-	selection = new Selection(bbMin, bbMax, this);
-	selection->setEnabled(false);
-	connect(selection, SIGNAL(updateGL()), this,
-		SIGNAL(updateGL()));
-	needSelectionUpdate = false;
-	winX = 0;
-	winY = 0;
+    _currentShaderProgram = 0;
+    _drawCS = true;
+
+    //_lightOrigin = QVector3D(-1000, -500, 1000);
+    _lightInfo.org = QVector3D(-10, -5, 10);
+    _lightInfo.amb = QVector3D(1,1,1);
+    _lightInfo.dif = QVector3D(1,1,1);
+    _lightInfo.spe = QVector3D(1,1,1);
+    _lightInfo.shi = 5;
+
+
+    _selection = new Selection(_bbMin, _bbMax, this);
+    _selection->setEnabled(false);
+    connect(_selection, SIGNAL(updateGL()), this, SIGNAL(updateGL()));
+    _needSelectionUpdate = false;
+    _winX = 0;
+    _winY = 0;
 }
 
+//=======================================================================
+//=======================================================================
 RangeImageRenderer::~RangeImageRenderer()
 {
 	//model belongs to someone else.
-	delete selection;
+    delete _selection;
 }
 
-void
-RangeImageRenderer::computeBoundingBox()
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::setModel(PRangeImage newModel)
+{
+    destroyBuffers();
+
+    _model = newModel;
+    if (!_model) return;
+
+    _width = _model->getWidth();
+    _height = _model->getHeight();
+    _pixelSizeX = _model->getPixelSizeX();
+    _pixelSizeY = _model->getPixelSizeY();
+    _depth = _model->getDepth();
+    _mask = _model->getMask();
+    computeBoundingBox();
+
+    //Downsample the texture.
+    QImage cachedTexture = _model->getTexture();
+    int scaleFactor = _skip/3;
+    if (1 > scaleFactor) scaleFactor = 1;
+    int scaledHeight = cachedTexture.height()/scaleFactor;
+    _scaledTexture = cachedTexture.scaledToHeight(scaledHeight);
+
+    if (_selection)
+    {
+         _selection->setBbMin(_bbMin);
+         _selection->setBbMax(_bbMax);
+    }
+
+    //_scaledTexture.save("D:/dev/mantis/mantis/data/test.png");
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::computeBoundingBox()
 {
 	float minX = FLT_MAX;
 	float maxX = -FLT_MAX;
@@ -84,13 +119,13 @@ RangeImageRenderer::computeBoundingBox()
 	float minZ = FLT_MAX;
 	float maxZ = -FLT_MAX;
 
-	for (int i = 0; i < width*height; ++i)
+    for (int i = 0; i < _width*_height; ++i)
 	{
-		if (mask.testBit(i))
+        if (_mask.testBit(i))
 		{
-			float currentX = (i%width)*pixelSizeX;
-			float currentY = (i/width)*pixelSizeY;
-			float currentZ = depth[i];
+            float currentX = (i%_width)*_pixelSizeX;
+            float currentY = (i/_width)*_pixelSizeY;
+            float currentZ = _depth[i];
 			if (currentX < minX)
 			{
 				minX = currentX;
@@ -117,13 +152,17 @@ RangeImageRenderer::computeBoundingBox()
 			}
 		}
 	}
-	bbMin = QVector3D(minX, minY, minZ);
-	bbMax = QVector3D(maxX, maxY, maxZ);
+
+    _bbMin = QVector3D(minX, minY, minZ);
+    _bbMax = QVector3D(maxX, maxY, maxZ);
 }
 
-void
-RangeImageRenderer::initShaders()
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::initShaders()
 {
+    if (_shaderPrograms.size() > 0) return; // already initialized
+
 	//Shader programs are parented to this object.
 	//They will get deleted automatically by QT.
 
@@ -137,8 +176,8 @@ RangeImageRenderer::initShaders()
 	shadedProgram->addShaderFromSourceFile(
         QGLShader::Fragment, ":/glsl/glsl/hologram.frag");
     shadedProgram->link();
-	shaderPrograms.push_back(shadedProgram);
-	polyModes.push_back(GL_FILL);
+    _shaderPrograms.push_back(shadedProgram);
+    _polyModes.push_back(GL_FILL);
 	//wireframe program
 	QGLShaderProgram* wireframeProgram = 
 		new QGLShaderProgram(this);
@@ -149,8 +188,9 @@ RangeImageRenderer::initShaders()
 	wireframeProgram->addShaderFromSourceFile(
         QGLShader::Fragment, ":/glsl/glsl/hello.frag");
 	wireframeProgram->link();
-	shaderPrograms.push_back(wireframeProgram);
-	polyModes.push_back(GL_LINE);
+    _shaderPrograms.push_back(wireframeProgram);
+    _polyModes.push_back(GL_LINE);
+
 	//Textured program
 	QGLShaderProgram* texturedProgram = 
 		new QGLShaderProgram(this);
@@ -161,8 +201,9 @@ RangeImageRenderer::initShaders()
 	texturedProgram->addShaderFromSourceFile(
         QGLShader::Fragment, ":/glsl/glsl/texturing.frag");
 	texturedProgram->link();
-	shaderPrograms.push_back(texturedProgram);
-	polyModes.push_back(GL_FILL);
+    _shaderPrograms.push_back(texturedProgram);
+    _polyModes.push_back(GL_FILL);
+
 	//colorMapped program
 	QGLShaderProgram* colorMappedProgram = 
 		new QGLShaderProgram(this);
@@ -173,8 +214,8 @@ RangeImageRenderer::initShaders()
 	colorMappedProgram->addShaderFromSourceFile(
         QGLShader::Fragment, ":/glsl/glsl/colorMap.frag");
 	colorMappedProgram->link();
-	shaderPrograms.push_back(colorMappedProgram);
-	polyModes.push_back(GL_FILL);
+    _shaderPrograms.push_back(colorMappedProgram);
+    _polyModes.push_back(GL_FILL);
 	//unproject program
 	QGLShaderProgram* unprojectProgram = new QGLShaderProgram(this);
 	unprojectProgram->addShaderFromSourceFile(
@@ -182,50 +223,55 @@ RangeImageRenderer::initShaders()
 	unprojectProgram->addShaderFromSourceFile(
         QGLShader::Fragment, ":/glsl/glsl/colorlevels.frag");
     unprojectProgram->link();
-	shaderPrograms.push_back(unprojectProgram);
-	polyModes.push_back(GL_FILL);
+    _shaderPrograms.push_back(unprojectProgram);
+    _polyModes.push_back(GL_FILL);
 }
 
-void
-RangeImageRenderer::passDataToShaders(GraphicsWidget* scene)
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::passDataToShaders(GraphicsWidget* scene)
 {
-	if (4 != currentShaderProgram)	
+    if (!_model) return;
+
+    int curProg = getCurShaderId();
+    QGLShaderProgram* shdr = getCurShader();
+    if (!shdr) return;
+
+    if (4 != curProg)
 	{
-		shaderPrograms[currentShaderProgram]->setUniformValue(
-			"lightOrigin", lightOrigin);
+        shdr->setUniformValue("lightOrigin",_lightInfo.org);
+        shdr->setUniformValue("lightAmb", _lightInfo.amb);
+        shdr->setUniformValue("lightDif", _lightInfo.dif);
+        shdr->setUniformValue("lightSpe", _lightInfo.spe);
+        shdr->setUniformValue("lightShi", _lightInfo.shi);
 	}
-	if (3 == currentShaderProgram)
+    if (3 == curProg)
 	{
-		shaderPrograms[currentShaderProgram]->setUniformValue(
-			"minDepth", (GLfloat) bbMin.z());
-		shaderPrograms[currentShaderProgram]->setUniformValue(
-			"maxDepth", (GLfloat) bbMax.z());
+        shdr->setUniformValue("minDepth", (GLfloat) _bbMin.z());
+        shdr->setUniformValue("maxDepth", (GLfloat) _bbMax.z());
 	}
-	if (2 == currentShaderProgram)
+    if (2 == curProg)
 	{
-		scene->bindTexture(scaledTexture,
+        scene->bindTexture(_scaledTexture,
 			GL_TEXTURE_2D, GL_RGBA,
 			QGLContext::LinearFilteringBindOption);
-		shaderPrograms[currentShaderProgram]->setUniformValue(
-			"modelTexture", (GLuint) 0);
+        shdr->setUniformValue("modelTexture", (GLuint) 0);
 	}
-	if (4 == currentShaderProgram)
+    if (4 == curProg)
 	{
-		shaderPrograms[currentShaderProgram]->setUniformValue(
-			"width", width);
-		shaderPrograms[currentShaderProgram]->setUniformValue(
-			"height", height);
-		shaderPrograms[currentShaderProgram]->setUniformValue(
-			"skip", skip);
+        shdr->setUniformValue("width", _width);
+        shdr->setUniformValue("height", _height);
+        shdr->setUniformValue("skip", _skip);
 	}
 } 
 
-void
-RangeImageRenderer::initBuffers()
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::initBuffers()
 {
 	//Downsampled width & height.
-	int dWidth = width/skip;
-	int dHeight = height/skip;
+    int dWidth = _width/_skip;
+    int dHeight = _height/_skip;
 
 	//Populate vertices & texture coordinates.
 	GLfloat* xyz = 
@@ -236,25 +282,25 @@ RangeImageRenderer::initBuffers()
 		for(int j = 0; j < dWidth; ++j)
 		{
 			int idx = dWidth*i + j;
-			xyz[3*idx + 0] = (GLfloat) j*skip*pixelSizeX;
-			xyz[3*idx + 1] = (GLfloat) i*skip*pixelSizeY;
+            xyz[3*idx + 0] = (GLfloat) j*_skip*_pixelSizeX;
+            xyz[3*idx + 1] = (GLfloat) i*_skip*_pixelSizeY;
 			xyz[3*idx + 2] = (GLfloat) 
-				depth[width*i*skip + j*skip];
+                _depth[_width*i*_skip + j*_skip];
 			texCoords[2*idx] = (1/((float) dWidth)) * (j + 0.5f);
 			texCoords[2*idx + 1] = (1/((float) dHeight)) 
 				* (i + 0.5f);
 		}
 	}
 	//Init VBO
-	vbo.create();
-	vbo.bind();
-	vbo.setUsagePattern(QGLBuffer::StaticDraw);
-	vbo.allocate(xyz, 3*dWidth*dHeight*sizeof(GLfloat));
+    _vbo.create();
+    _vbo.bind();
+    _vbo.setUsagePattern(QGLBuffer::StaticDraw);
+    _vbo.allocate(xyz, 3*dWidth*dHeight*sizeof(GLfloat));
 	//Init TBO
-	tbo.create();
-	tbo.bind();
-	tbo.setUsagePattern(QGLBuffer::StaticDraw);
-	tbo.allocate(texCoords, sizeof(GLfloat)*2*dWidth*dHeight);
+    _tbo.create();
+    _tbo.bind();
+    _tbo.setUsagePattern(QGLBuffer::StaticDraw);
+    _tbo.allocate(texCoords, sizeof(GLfloat)*2*dWidth*dHeight);
 	delete [] texCoords;
 
 	//Do meshing (populate indices and normals).
@@ -275,10 +321,10 @@ RangeImageRenderer::initBuffers()
 			// 0  1
 			// 2  3
 			//Indices into the mask.
-			int index0 = width*i*skip + j*skip;
-			int index1 = index0 + skip;
-			int index2 = index0 + width*skip;
-			int index3 = index2 + skip;
+            int index0 = _width*i*_skip + j*_skip;
+            int index1 = index0 + _skip;
+            int index2 = index0 + _width*_skip;
+            int index3 = index2 + _skip;
 			//Indices into the vertices.
 			int vertID0 = dWidth*i + j;
 			int vertID1 = vertID0 + 1;
@@ -286,11 +332,11 @@ RangeImageRenderer::initBuffers()
 			int vertID3 = vertID2 + 1;
 
 			//Can I connect point 1 to point 2?
-			if (mask.testBit(index1) & mask.testBit(index2))
+            if (_mask.testBit(index1) & _mask.testBit(index2))
 			{
 				// I use the default / method to divide the 
 				//triangles.
-				if(mask.testBit(index0)) //Can I connect 0 to 1 and 2?
+                if(_mask.testBit(index0)) //Can I connect 0 to 1 and 2?
 				{
 					//If so, I can make a triangle out of them.
 					indices.push_back(vertID0);
@@ -299,7 +345,7 @@ RangeImageRenderer::initBuffers()
 					computeTriangleNormal(normals, xyz, vertID2, 
 						vertID0, vertID1);
 				}
-				if(mask.testBit(index3)) //Can I connect 3 to 1 and 2?
+                if(_mask.testBit(index3)) //Can I connect 3 to 1 and 2?
 				{
 					indices.push_back(vertID2);
 					indices.push_back(vertID3);
@@ -308,10 +354,10 @@ RangeImageRenderer::initBuffers()
 						vertID1, vertID3);
 				}
 			}
-			else if (mask.testBit(index0) & mask.testBit(index3)) //Can I connect 0 and 3?
+            else if (_mask.testBit(index0) & _mask.testBit(index3)) //Can I connect 0 and 3?
 			{
 				//I use the \ method the divide the triangles.
-				if(mask.testBit(index1)) //Can I connect 1 to 0 and 3?
+                if(_mask.testBit(index1)) //Can I connect 1 to 0 and 3?
 				{
 					indices.push_back(vertID1);
 					indices.push_back(vertID3);
@@ -319,7 +365,7 @@ RangeImageRenderer::initBuffers()
 					computeTriangleNormal(normals, xyz, vertID3, 
 						vertID0, vertID1);
 				}
-				if(mask.testBit(index2)) //Can I connect 2 to 0 and 3?
+                if(_mask.testBit(index2)) //Can I connect 2 to 0 and 3?
 				{
 					indices.push_back(vertID2);
 					indices.push_back(vertID3);
@@ -332,26 +378,37 @@ RangeImageRenderer::initBuffers()
 	}
 
 	//Allocate the ibo.
-	ibo = QGLBuffer(QGLBuffer::IndexBuffer);
-	ibo.create();
-	ibo.bind();
-	ibo.setUsagePattern(QGLBuffer::StaticDraw);
-	ibo.allocate(indices.data(), sizeof(GLuint)*indices.size());
-	nTriangles = indices.size()/3;
+    _ibo = QGLBuffer(QGLBuffer::IndexBuffer);
+    _ibo.create();
+    _ibo.bind();
+    _ibo.setUsagePattern(QGLBuffer::StaticDraw);
+    _ibo.allocate(indices.data(), sizeof(GLuint)*indices.size());
+    _nTriangles = indices.size()/3;
 
 	//Allocate the nbo.
-	nbo.create();
-	nbo.bind();
-	nbo.setUsagePattern(QGLBuffer::StaticDraw);
-	nbo.allocate(normals.data(), sizeof(GLfloat)*normals.size());
+    _nbo.create();
+    _nbo.bind();
+    _nbo.setUsagePattern(QGLBuffer::StaticDraw);
+    _nbo.allocate(normals.data(), sizeof(GLfloat)*normals.size());
 
 	delete [] xyz;
 }
 
-void
-RangeImageRenderer::computeTriangleNormal(QVector<GLfloat>& 
-	normals, const float* xyz, int centerIdx, 
-	int leftIdx, int rightIdx)
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::destroyBuffers()
+{
+    _vbo.destroy();
+    _ibo.destroy();
+    _nbo.destroy();
+    _tbo.destroy();
+
+    _nTriangles = 0;
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::computeTriangleNormal(QVector<GLfloat>&  normals, const float* xyz, int centerIdx,  int leftIdx, int rightIdx)
 {
 	//WARNING: This modifies the normals QVector.
 	//Doing this to avoid having to store the normals on
@@ -382,15 +439,20 @@ RangeImageRenderer::computeTriangleNormal(QVector<GLfloat>&
 	normals[3*rightIdx + 2] += normalVec.z();
 }
 
-void
-RangeImageRenderer::internalRender(GraphicsWidget* scene)
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::internalRender(GraphicsWidget* scene)
 {
+    const char *func = "RangeImageRenderer::internalRenderer() - ";
+
+    if (!_model) return;
+
 	//Init buffers & shaders if this is first draw
 	//Need context to do this.
-	if (!vbo.isCreated())
+    if (!_vbo.isCreated())
 	{
 		qDebug() << "Drawing for the first time....";
-		initShaders();
+        initShaders();
 		//Turn on the vertex array capability.
 		glEnableClientState(GL_VERTEX_ARRAY);
 		//Turn on the normal array capability.
@@ -401,11 +463,13 @@ RangeImageRenderer::internalRender(GraphicsWidget* scene)
 		glEnable(GL_BLEND); //for the selection plane.
 	}
 
+    QGLShaderProgram *shdr = getCurShader();
+
 	//Bind current shader.
-	if (shaderPrograms.isEmpty())
+    if (!shdr)
 	{
 		//In case you've done something like pull all
-		//the programs out of shaderPrograms:
+        //the programs out of _shaderPrograms:
 		qDebug() << "You have no shader programs!" <<
 			"Drawing with 1.0 pipeline.";
 		glColor3f(0, 0, 1.0f); //blue pen
@@ -414,61 +478,77 @@ RangeImageRenderer::internalRender(GraphicsWidget* scene)
 	}
 	else 
 	{
-		shaderPrograms[currentShaderProgram]->bind();
+        if (!shdr->bind())
+        {
+            LogError("%s Failed to bind shader", func);
+
+        }
 		//Provide shaders with any needed data/settings.
 		passDataToShaders(scene);
-		//If currentShaderProgram is valid, then polyMode
+        //If _currentShaderProgram is valid, then polyMode
 		//will have an entry for it (see setDrawMode).
-		glPolygonMode(GL_FRONT_AND_BACK,
-			polyModes[currentShaderProgram]);
+        glPolygonMode(GL_FRONT_AND_BACK, _polyModes[getCurShaderId()]);
 	}
 
 	//Set up matrix stack.
-	glMatrixMode(GL_MODELVIEW);
+    glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
-	glMultMatrixd(transform.constData());
-	glMultMatrixd(model->getCoordinateSystemMatrix().constData());
+
+    // TODO: RESTORE
+    glMultMatrixd(_transform.constData());
+    glMultMatrixd(_model->getCoordinateSystemMatrix().constData());
+
 
 	//Draw model data.
-	vbo.bind();
+    if (!_vbo.bind())
+    {
+        LogError("%s Failed to bind vbo", func);
+    }
+
 	//Put buffer contents in Vertex Array.
 	//NULL says "use the currently bound buffer"
 	glVertexPointer(3, GL_FLOAT, 0, NULL);
 
-	nbo.bind();
+    if (!_nbo.bind())
+    {
+        LogError("%s Failed to bind nbo", func);
+    }
 	//Put buffer contents in Vertex Array.
 	//NULL says "use the currently bound buffer"
 	glNormalPointer(GL_FLOAT, 0, NULL);
 
-	tbo.bind();
+    if (!_tbo.bind())
+    {
+        LogError("%s Failed to bind tbo", func);
+    }
 	//Put buffer contents in Vertex Array.
 	//NULL says "use the currently bound buffer"
 	glTexCoordPointer(2, GL_FLOAT, 0, NULL);
 
-	ibo.bind();
+    if (!_ibo.bind())
+    {
+        LogError("%s Failed to bind ibo", func);
+    }
 	//Draw the buffers in the order given in ibo.
 	//NULL says "use the currently bound buffer" as the indices.
-	glDrawElements(GL_TRIANGLES, nTriangles*3, 
-		GL_UNSIGNED_INT, NULL);
+    glDrawElements(GL_TRIANGLES, _nTriangles*3, GL_UNSIGNED_INT, NULL);
 
     //Unbind current shader program.
-    if (!shaderPrograms.isEmpty())
-          shaderPrograms[currentShaderProgram]->release();
+    if (shdr) shdr->release();
 
 	//Draw selection, if enabled.
-	if (selection->isEnabled())
-		selection->draw();
+    if (_selection->isEnabled()) _selection->draw();
 
 	glMatrixMode(GL_MODELVIEW);
 	glPopMatrix();
 
     //Draw coordinate system.
-	if (drawCS)
+    if (_drawCS)
     {
 		glDisable(GL_DEPTH_TEST);
 		glMatrixMode(GL_MODELVIEW);
 		glPushMatrix();
-		glMultMatrixd(transform.constData());
+        glMultMatrixd(_transform.constData());
 		float lineLength = 4e3;
 		glLineWidth(2.0f);
 		glBegin(GL_LINES);
@@ -488,131 +568,209 @@ RangeImageRenderer::internalRender(GraphicsWidget* scene)
 	}
 }
 
-void
-RangeImageRenderer::draw(GraphicsWidget* scene)
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::draw(GraphicsWidget* scene)
 {
-	if (needSelectionUpdate)
+    if (!_model) return;
+
+    if (_needSelectionUpdate)
 	{
 		//Save state.
-		int oldProgram = currentShaderProgram;
-		bool oldDrawCS = drawCS;
-		bool oldSelectionEnabled = selection->isEnabled();
+        int oldProgram = getCurShaderId();
+        bool oldDrawCS = _drawCS;
+        bool oldSelectionEnabled = _selection->isEnabled();
 
 		//Draw for identifying window coordinates.
-		currentShaderProgram = 4;
-		drawCS = false;
-		selection->setEnabled(false);
+        _currentShaderProgram = 4;
+        _drawCS = false;
+        _selection->setEnabled(false);
 		internalRender(scene);
 
 		//Read back pixel color.
 		unsigned char color[3];
 		//Must flip y - Qt and OpenGL are different.
-		glReadPixels(winX, 
-			scene->height() - winY, 1, 1,
-			GL_RGB, GL_UNSIGNED_BYTE, color);
+        glReadPixels(_winX,  scene->height() - _winY, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, color);
 
 		//Determine i and j values from pixel color.
 		int id = (65536*color[0]) + (256*color[1]) + color[2];
-		int i = id/width;
-		int j = id%width;
+        int i = id/_width;
+        int j = id%_width;
 
 		//Update selection.
-		selection->updateSelectionBasis(pixelSizeX*j, pixelSizeY*i);
+        _selection->updateSelectionBasis(_pixelSizeX*j, _pixelSizeY*i);
 
 		//Restore state.
-		currentShaderProgram = oldProgram;
-		drawCS = oldDrawCS;
-		selection->setEnabled(oldSelectionEnabled);
+        _currentShaderProgram = oldProgram;
+        _drawCS = oldDrawCS;
+        _selection->setEnabled(oldSelectionEnabled);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//We have updated the selection.
-		needSelectionUpdate = false;
+        _needSelectionUpdate = false;
 	}
 	internalRender(scene);
 }
 
-void
-RangeImageRenderer::translate(const QVector3D& vector)
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::translate(const QVector3D& vector)
 {
 	QMatrix4x4 temp;
 	temp.translate(vector);
 	applyLeftTransform(temp);
 }
 
-void 
-RangeImageRenderer::rotate(float angle, const QVector3D& axis)
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::rotate(float angle, const QVector3D& axis)
 {
 	QMatrix4x4 temp;
 	temp.rotate(angle, axis);
 	applyRightTransform(temp);
 }
 
-void
-RangeImageRenderer::applyLeftTransform(const QMatrix4x4& other)
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::applyLeftTransform(const QMatrix4x4& other)
 {
-	transform = other * transform;
+    _transform = other * _transform;
 }
 
-void
-RangeImageRenderer::applyRightTransform(const QMatrix4x4& other)
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::applyRightTransform(const QMatrix4x4& other)
 {
-	transform = transform * other;
+    _transform = _transform * other;
 }
 
-void
-RangeImageRenderer::setSkip(int newSkip)
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::setSkip(int newSkip)
 {
-	skip = newSkip;
+    _skip = newSkip;
 
-	if (1 != skip)
+    if (!_model) return;
+
+    if (1 != _skip)
 	{
-		QImage cachedTexture = model->getTexture();
-		int scaleFactor = skip/3;
+        QImage cachedTexture = _model->getTexture();
+        int scaleFactor = _skip/3;
 		if (1 > scaleFactor) scaleFactor = 1;
 		int scaledHeight = cachedTexture.height()/scaleFactor;
-		scaledTexture = 
-			cachedTexture.scaledToHeight(scaledHeight);
+        _scaledTexture = cachedTexture.scaledToHeight(scaledHeight);
 	}
 	else
-		scaledTexture = model->getTexture();
+        _scaledTexture = _model->getTexture();
 }
 
-void
-RangeImageRenderer::setDrawMode(int idx)
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::setDrawMode(int idx)
 {
-	//If idx is a valid index into shaderPrograms, use it.
-	if ((0 <= idx) && (idx < shaderPrograms.size()))
-	{
-		currentShaderProgram = idx;
+    if (_currentShaderProgram == idx) return;
 
+    // if shaderPrograms is not filled yet, we still need to store the idx for later
+    _currentShaderProgram = idx;
+
+    //If idx is a valid index into _shaderPrograms, use it.
+    if ((0 <= idx) && (idx < _shaderPrograms.size()))
+    {
 		//If not enough polyModes:
-		if (idx >= polyModes.size())
+        if (idx >= _polyModes.size())
 		{
-			int diff = idx - polyModes.size() + 1;
+            int diff = idx - _polyModes.size() + 1;
 			for (int i = 0; i < diff; ++i)
 			{
-				polyModes.push_back(GL_FILL);
+                _polyModes.push_back(GL_FILL);
 			}
 		}
 
-		emit updateGL();
+
+       emit updateGL();
 	}
 }
 
-void
-RangeImageRenderer::setDrawCS(bool enable)
+//=======================================================================
+//=======================================================================
+int RangeImageRenderer::getCurShaderId()
 {
-	drawCS = enable;
+    if ((0 <= _currentShaderProgram) && (_currentShaderProgram < _shaderPrograms.size()))
+    {
+        return _currentShaderProgram;
+    }
+
+    return 0;
+}
+
+//=======================================================================
+//=======================================================================
+QGLShaderProgram* RangeImageRenderer::getCurShader()
+{
+    if (_shaderPrograms.size() <= 0) return NULL;
+
+    int idx = getCurShaderId();
+    return _shaderPrograms[idx];
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::setDrawCS(bool enable)
+{
+    _drawCS = enable;
 	emit updateGL();
 }
 
-void
-RangeImageRenderer::scheduleSelectionUpdate(int x, int y)
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::setLightOrigin(const QVector3D& newOrigin)
 {
-	if (selection->isEnabled())
+    _lightInfo.org = newOrigin;
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::setLightAmb(const QVector3D& v)
+{
+    _lightInfo.amb = v;
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::setLightDif(const QVector3D& v)
+{
+    _lightInfo.dif = v;
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::setLightSpe(const QVector3D& v)
+{
+    _lightInfo.spe = v;
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::setLightShine(float s)
+{
+    _lightInfo.shi = s;
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::setLightInfo(const LightInfo &info)
+{
+    _lightInfo = info;
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageRenderer::scheduleSelectionUpdate(int x, int y)
+{
+    if (_selection->isEnabled())
 	{
-		needSelectionUpdate = true;
-		winX = x;
-		winY = y;
+        _needSelectionUpdate = true;
+        _winX = x;
+        _winY = y;
 		emit updateGL();
 	}
 }

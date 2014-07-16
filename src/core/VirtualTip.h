@@ -63,7 +63,7 @@ class VirtualTip: public QObject
 
   protected:
 	//Tip Variables.
-	RangeImage* tip; ///< Pointer to tip object. Not owned by this class.
+    RangeImage* tip; ///< Pointer to tip object. Not owned by this object
 	QVector3D bbMin; ///< Tip bounding box min pt.
 	QVector3D bbMax; ///< Tip bounding box max pt.
 	///Cached depth from tip (implicitly shared).
@@ -125,8 +125,7 @@ class VirtualTip: public QObject
 	 * context instead.  This allows you to piggyback off of a GUI OpenGL
 	 * widget if you would like. Of course, you own the passed-in newContext.
 	 */
-	VirtualTip(RangeImage* newTip, QGLContext* newContext = NULL, 
-		QObject* parent = 0);
+    VirtualTip(RangeImage* newTip, QGLContext* newContext = NULL, QObject* parent = 0);
 	virtual ~VirtualTip();
 
 	///Call this at program termination to deallocate persisting context.

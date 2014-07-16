@@ -27,16 +27,15 @@
 
 //Hello world fragment shader
 
-vec3 lighting(vec3, vec3, vec3, float);
+vec3 lighting(vec3, vec3, vec3);
 
 void
 main()
 {
 	//Surface properties.
 	vec3 blue = vec3(0.0f, 0.0f, 0.5f);
-	float shine = 5.0f;
+	//float shine = 5.0f;
 
 	//Output color
-	gl_FragColor = vec4(lighting(blue,
-		blue, blue, shine), 1.0f); 
+	gl_FragColor = vec4(lighting(blue, blue, blue), 1.0f); 
 }

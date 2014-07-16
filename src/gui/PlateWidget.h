@@ -44,7 +44,7 @@ class PlateWidget: public InvestigatorSubWidget
 	
 	//Data Objects.
 	///Pointer to 3D data.  Not owned by this class.
-	RangeImage* plate;
+    PRangeImage plate;
 
 	//Gui Objects.
 	QGridLayout* controlsLayout;
@@ -58,7 +58,7 @@ class PlateWidget: public InvestigatorSubWidget
 	void assemble();
 
 public:
-	PlateWidget(RangeImage* rangeImage, QWidget *parent = 0);
+    PlateWidget(PRangeImage rangeImage, QWidget *parent = 0);
 	virtual ~PlateWidget();
 
 public slots:

@@ -28,16 +28,15 @@
 //White illumination from afar.
 varying vec3 surfaceNormal;
 varying vec4 eyeDistance;
-uniform vec3 lightOrigin;
+uniform vec3 lightOrigin = vec3(-1000.0f, 500.0f, 1000.0f);
+uniform vec3 lightAmb = vec3(1.0f);
+uniform vec3 lightDif = vec3(1.0f);
+uniform vec3 lightSpe = vec3(1.0f);
+uniform float lightShi = 5.0;
 
-vec3
-lighting(vec3 ambient, vec3 diffuse, vec3 specular, float shine)
+vec3 lighting(vec3 ambient, vec3 diffuse, vec3 specular, float shine)
 {
 	vec3 normal = normalize(surfaceNormal);
-
-	//Light source properties
-	vec3 source = vec3(1.0f); //white light source.
-	vec3 ambSource = vec3(1.0f);
 
 	//Diffuse reflection.
 	float lambert = max(dot(normalize(lightOrigin), normal), 0);
@@ -58,7 +57,12 @@ lighting(vec3 ambient, vec3 diffuse, vec3 specular, float shine)
 	//phong += pow(max(dot(r, v), 0), shine);
 
 	//Combine results.
-	return (ambSource * ambient) +
-		(lambert * source * diffuse) +
-		(phong * source * specular);
+	return (lightAmb * ambient) + 
+		   (lambert * lightDif * diffuse) + 
+		   (phong * lightSpe * specular);
+}
+
+vec3 lighting(vec3 ambient, vec3 diffuse, vec3 specular)
+{
+	return lighting(ambient, diffuse, specular, lightShi);
 }

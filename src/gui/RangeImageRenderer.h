@@ -49,99 +49,33 @@ class RangeImageRenderer: public GenericModel
 {
 	Q_OBJECT 
 
-  protected:
-	//Member variables.
-	//Range image data.
-	///Pointer to the range image file data.
-	QPointer<RangeImage> model;
-	//Cached from model.
-	int width; ///< width from model
-	int height; ///< height from model
-	float pixelSizeX; ///< pixelSizeX from model.
-	float pixelSizeY; ///< pixelSizeY from model.
-	///Depth from model (implicitly shared).
-	QVector<float> depth;
-	///Mask from model (implicitly shared).
-	QBitArray mask; 
-	///Scaled QImage for texture shader.
-	QImage scaledTexture;
+public:
+    struct LightInfo
+    {
+        ///Origin of light.
+        QVector3D org;
+        QVector3D amb;
+        QVector3D dif;
+        QVector3D spe;
+        float shi;
 
-	//Drawing buffer variables.
-	///Matrix defining model transformations.
-	QMatrix4x4 transform;
-	///Downsample parameter. Default = 6.
-	int skip;
-	///Vertex buffer object.
-	QGLBuffer vbo;
-	///Index buffer object for storing the mesh.
-	QGLBuffer ibo;
-	///Number of triangles in model
-	int nTriangles;
-	///Normal buffer object.
-	QGLBuffer nbo;
-	///Texture coordinates buffer object.
-	QGLBuffer tbo;
+        LightInfo()
+        {
+            org = QVector3D(-10, -5, 10);
+            amb = QVector3D(1,1,1);
+            dif = QVector3D(1,1,1);
+            spe = QVector3D(1,1,1);
+            shi = 5;
+        }
+    };
 
-	//Drawing mode variables.
-	///Index of the current shader program.
-	int currentShaderProgram;
-	///Shader program vector.
-	/**
-	 * By default,
-	 * 0 is shaded program, 1 is wireframe program,
-	 * 2 is textured program, 3 is colorMappedProgram.
-	 */
-	QVector<QGLShaderProgram*> shaderPrograms;
-	///Companion vector describing shader polygon modes.
-	QVector<GLenum> polyModes;
-	///Should the coordinate system be turned on?
-	bool drawCS;
-	///Origin of light.
-	QVector3D lightOrigin;
-	///Object for drawing double-click selection.
-	Selection* selection;
-	///Do we need to update the selection this draw loop?
-	bool needSelectionUpdate;
-	///Window x coordinate for currently selected point.
-	int winX;
-	///Window y coordinate for currently selected point.
-	int winY;
-
-	//Protected member functions.
-	///Compute bounding box.
-	virtual void computeBoundingBox();
-	///Set up shaders.
-	/**
-	 * If you overload in this a subclass to add any new shaders,
-	 * call RangeImageRenderer::initShaders() first!
-	 * By default,
-	 * 0 is shaded program, 1 is wireframe program,
-	 * 2 is textured program, 3 is colorMappedProgram.
-	 * 4 is a program that paints each vertex with a unique
-	 * color for unprojection (this is more or less private
-	 * to this class).
-	 * Also, in addition to adding to the shaderPrograms 
-	 * vector, be sure to add to the polyModes vector with the
-	 * polygon mode you want.  (Unless you just want GL_FILL.)
-	 */
-	virtual void initShaders();
-	///Pass any needed data into shaders.
-	virtual void passDataToShaders(GraphicsWidget* scene);
-	///Set up internal buffer objects.
-	void initBuffers();
-	///Helper function for computing normals for the nbo.
-	///WARNING: This modifies the vector reference "normals"!
-	void computeTriangleNormal(QVector<GLfloat>& normals,
-		const float* xyz, int centerIdx, int leftIdx, 
-		int rightIdx);
-	///Does the actual drawing for draw so draw can update selection.
-	void internalRender(GraphicsWidget* scene);
-
-  public:
+public:
 	///Create a renderer for newModel; doesn't take ownership of newModel.
-	RangeImageRenderer(RangeImage* newModel, 
-		QWidget *parent = 0);
+    RangeImageRenderer(PRangeImage newModel, QWidget *parent = 0);
 	virtual ~RangeImageRenderer();
+
+    void setModel(PRangeImage newModel);
+    PRangeImage getModel() { return _model; }
 
 	///Draw the model. Overloading draw() from GenericModel.
 	/**
@@ -171,18 +105,26 @@ class RangeImageRenderer: public GenericModel
 	///Set the downsampling rate.
 	/**
 	 * This is ineffective after the first call of this->draw().
-	 * So if you want something besides 6, set it on creation
+     * So if you want something besides 6, set it on creation
 	 * of this object.
 	 */
 	void setSkip(int newSkip);
 	///Get the transform matrix.
-	inline const QMatrix4x4& getTransformMatrix()
-		{return transform;}
+    inline const QMatrix4x4& getTransformMatrix() { return _transform; }
 	///Set the transform matrix.
-	inline void setTransformMatrix(const QMatrix4x4& newTrans)
-		{transform = newTrans;}
+    inline void setTransformMatrix(const QMatrix4x4& newTrans) { _transform = newTrans; }
 	
-  public slots:
+    ///Update the lighting origin.
+    ///TODO: MAKE THREAD SAFE
+    void setLightOrigin(const QVector3D& newOrigin);
+    void setLightAmb(const QVector3D& v);
+    void setLightDif(const QVector3D& v);
+    void setLightSpe(const QVector3D& v);
+    void setLightShine(float s);
+    const LightInfo& getLightInfo() { return _lightInfo; }
+    void setLightInfo(const LightInfo &info);
+
+public slots:
 	///Select the current shader.
 	/**
 	 * If idx is out of range, this function does nothing.
@@ -190,28 +132,119 @@ class RangeImageRenderer: public GenericModel
 	 * will be extended with values of GL_FILL to fit the
 	 * requested idx.
 	 */
-	void setDrawMode(int idx);
+    void setDrawMode(int idx);
 	///Set whether or not the coordinate system is drawn.
 	void setDrawCS(bool enabled);
-	///Update the lighting origin.
-	inline void setLightOrigin(const QVector3D& newOrigin)
-		{lightOrigin = newOrigin;}
+
 	///Schedule an update to the internal selection object by "unprojection."
 	void scheduleSelectionUpdate(int x, int y);
 	//Pass throughs for Selection object.
-	inline QPointF& getBasis() {return selection->getBasis();}
+    inline QPointF& getBasis() { return _selection->getBasis(); }
 	///Use with spin box update.  Only schedules a selection redraw.
-	inline void redrawSelection(float x, float y)
-		{selection->redrawSelection(x, y);}
-	inline void setSelectionEnabled(bool status)
-		{selection->setEnabled(status);}
-	inline void setSelectionMode(Selection::drawModes mode)
-		{selection->setDrawMode(mode);}
-	inline void setSelectionMultiplier(int mult)
-		{selection->setMultiplier(mult);}
+    inline void redrawSelection(float x, float y) { _selection->redrawSelection(x, y); }
+    inline void setSelectionEnabled(bool status) { _selection->setEnabled(status); }
+    inline void setSelectionMode(Selection::drawModes mode) { _selection->setDrawMode(mode); }
+    inline void setSelectionMultiplier(int mult) { _selection->setMultiplier(mult); }
 
   //signals:
 	//void statusMessage(QString msg); Laura: Won't work with GL!
+
+protected:
+    //Protected member functions.
+    ///Compute bounding box.
+    virtual void computeBoundingBox();
+
+    ///Set up shaders.
+    /**
+     * If you overload in this a subclass to add any new shaders,
+     * call RangeImageRenderer::initShaders() first!
+     * By default,
+     * 0 is shaded program, 1 is wireframe program,
+     * 2 is textured program, 3 is colorMappedProgram.
+     * 4 is a program that paints each vertex with a unique
+     * color for unprojection (this is more or less private
+     * to this class).
+     * Also, in addition to adding to the shaderPrograms
+     * vector, be sure to add to the polyModes vector with the
+     * polygon mode you want.  (Unless you just want GL_FILL.)
+     */
+    virtual void initShaders();
+    ///Pass any needed data into shaders.
+    virtual void passDataToShaders(GraphicsWidget* scene);
+    ///Set up internal buffer objects.
+    void initBuffers();
+    void destroyBuffers();
+
+    ///Helper function for computing normals for the nbo.
+    ///WARNING: This modifies the vector reference "normals"!
+    void computeTriangleNormal(QVector<GLfloat>& normals,
+        const float* xyz, int centerIdx, int leftIdx,
+        int rightIdx);
+    ///Does the actual drawing for draw so draw can update selection.
+    void internalRender(GraphicsWidget* scene);
+
+    int getCurShaderId();
+    QGLShaderProgram* getCurShader();
+
+protected:
+  //Range image data.
+  ///Pointer to the range image file data.
+  PRangeImage _model;
+  //Cached from model.
+  int _width; ///< width from model
+  int _height; ///< height from model
+  float _pixelSizeX; ///< pixelSizeX from model.
+  float _pixelSizeY; ///< pixelSizeY from model.
+  ///Depth from model (implicitly shared).
+  QVector<float> _depth;
+  ///Mask from model (implicitly shared).
+  QBitArray _mask;
+  ///Scaled QImage for texture shader.
+  QImage _scaledTexture;
+
+  //Drawing buffer variables.
+  ///Matrix defining model transformations.
+  QMatrix4x4 _transform;
+  ///Downsample parameter. Default = 6.
+  int _skip;
+  ///Vertex buffer object.
+  QGLBuffer _vbo;
+  ///Index buffer object for storing the mesh.
+  QGLBuffer _ibo;
+  ///Number of triangles in model
+  int _nTriangles;
+  ///Normal buffer object.
+  QGLBuffer _nbo;
+  ///Texture coordinates buffer object.
+  QGLBuffer _tbo;
+
+  //Drawing mode variables.
+  ///Index of the current shader program.
+  int _currentShaderProgram;
+  ///Shader program vector.
+  /**
+   * By default,
+   * 0 is shaded program, 1 is wireframe program,
+   * 2 is textured program, 3 is colorMappedProgram.
+   */
+
+  QVector<QGLShaderProgram*> _shaderPrograms;
+  ///Companion vector describing shader polygon modes.
+  QVector<GLenum> _polyModes;
+  ///Should the coordinate system be turned on?
+  bool _drawCS;
+
+  ///Light Info
+  LightInfo _lightInfo;
+
+  ///Object for drawing double-click selection.
+  Selection* _selection;
+  ///Do we need to update the selection this draw loop?
+  bool _needSelectionUpdate;
+  ///Window x coordinate for currently selected point.
+  int _winX;
+  ///Window y coordinate for currently selected point.
+  int _winY;
 };
 
 #endif //!defined __RANGEIMAGERENDERER_H__

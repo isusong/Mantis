@@ -26,6 +26,8 @@
 #ifndef __STATPLOT_H__
 #define __STATPLOT_H__
 
+#define QWT_DLL
+
 #include <qwt_plot.h>
 #include <qwt_plot_curve.h>
 #include <qwt_plot_grid.h>

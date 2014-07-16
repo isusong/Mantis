@@ -27,173 +27,251 @@
 #include <QIcon>
 #include <QColorDialog>
 
-RangeImageViewer::RangeImageViewer(RangeImage* rangeImage, 
-	int flatDimension, int w, int h, QWidget* parent):
+//=======================================================================
+//=======================================================================
+RangeImageViewer::RangeImageViewer(PRangeImage rangeImage, bool useViewTools, int flatDimension, int w, int h, QWidget* parent):
 	QWidget(parent)
 {
-	width = w;
-	height = h;
-	mainGrid = new QGridLayout(this);
-	graphics = new GraphicsWidget(this);
-	renderer = new RangeImageRenderer(rangeImage, this);
-	viewTools = new QToolBar(this);
-	actionGroup = new QActionGroup(viewTools);
-	shaded = new QAction(this);
-	wireframe = new QAction(this);
-	textured = new QAction(this);
-	heightMapped = new QAction(this);
-	signalMapper = new QSignalMapper(this);
-	localCsys = new QAction(this);
-	worldCsys = new QAction(this);
-	background = new QAction(this);
+    _useViewTools = useViewTools;
+
+    _width = w;
+    _height = h;
+    _mainGrid = new QGridLayout(this);
+    _graphics = new GraphicsWidget(this);
+    _renderer = new RangeImageRenderer(rangeImage, this);
+
+    _viewTools = NULL;
+    _actionGroup = NULL;
+    _shaded = NULL;
+    _wireframe = NULL;
+    _textured = NULL;
+    _heightMapped = NULL;
+    _signalMapper = NULL;
+    _localCsys = NULL;
+    _worldCsys = NULL;
+    _background = NULL;
+
+    if (_useViewTools)
+    {
+        _viewTools = new QToolBar(this);
+        _actionGroup = new QActionGroup(_viewTools);
+        _shaded = new QAction(this);
+        _wireframe = new QAction(this);
+        _textured = new QAction(this);
+        _heightMapped = new QAction(this);
+        _signalMapper = new QSignalMapper(this);
+        _localCsys = new QAction(this);
+        _worldCsys = new QAction(this);
+        _background = new QAction(this);
+    }
 
 	//Adjust for flat dimension.
-	setFlatDimension(flatDimension);
+    setFlatDimension(flatDimension);
 
 	initActions();
 	makeConnections();
 	assemble();
 
 	//Some start up defaults.
-	graphics->setDrawCS(false);
-	renderer->setDrawCS(false);
-	renderer->setDrawMode(2); //start in textured.
-	graphics->updateGL();
+    _graphics->setDrawCS(false);
+    _renderer->setDrawCS(false);
+    _renderer->setDrawMode(2); //start in textured.
+    _graphics->updateGL();
 }
 
+//=======================================================================
+//=======================================================================
 RangeImageViewer::~RangeImageViewer()
 {
 	//Everything is parented.
 }
 
-void
-RangeImageViewer::initActions()
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::setModel(PRangeImage ri)
 {
+    if (!_renderer) return;
+
+    _renderer->setModel(ri);
+    _graphics->setModel(_renderer); // need to refresh values, like bounding box
+    _graphics->updateGL();
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::setWindowSelected(bool sel)
+{
+    if (!_graphics) return;
+
+    _graphics->setWindowSelected(sel);
+}
+
+//=======================================================================
+//=======================================================================
+bool RangeImageViewer::getIsWindowSelected()
+{
+    if (!_graphics) return false;
+
+    return _graphics->getWindowSelected();
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::initActions()
+{
+    if (!_useViewTools) return;
+
 	//Set up the actions.
 	//Shaded button.
-	shaded->setCheckable(true);
-	shaded->setActionGroup(actionGroup);
-	shaded->setIcon(QIcon(":/shading_modes/Icons/smooth.png"));
-	shaded->setToolTip(tr("Shaded view"));
-	signalMapper->setMapping(shaded, 0);
+    _shaded->setCheckable(true);
+    _shaded->setActionGroup(_actionGroup);
+    _shaded->setIcon(QIcon(":/shading_modes/Icons/smooth.png"));
+    _shaded->setToolTip(tr("Shaded view"));
+    _signalMapper->setMapping(_shaded, 0);
 
 	//Wireframe button
-	wireframe->setCheckable(true);
-	wireframe->setActionGroup(actionGroup);
-	wireframe->setIcon(QIcon(":/shading_modes/Icons/wire.png"));
-	wireframe->setToolTip(tr("Wireframe view"));
-	signalMapper->setMapping(wireframe, 1);
+    _wireframe->setCheckable(true);
+    _wireframe->setActionGroup(_actionGroup);
+    _wireframe->setIcon(QIcon(":/shading_modes/Icons/wire.png"));
+    _wireframe->setToolTip(tr("Wireframe view"));
+    _signalMapper->setMapping(_wireframe, 1);
 	
 	//Textured button.
-	textured->setCheckable(true);
-	textured->setActionGroup(actionGroup);
-	textured->setIcon(QIcon(":/shading_modes/Icons/textures.png"));
-	textured->setToolTip(tr("Textured view"));
-	signalMapper->setMapping(textured, 2);
-	textured->setChecked(true);
+    _textured->setCheckable(true);
+    _textured->setActionGroup(_actionGroup);
+    _textured->setIcon(QIcon(":/shading_modes/Icons/textures.png"));
+    _textured->setToolTip(tr("Textured view"));
+    _signalMapper->setMapping(_textured, 2);
+    _textured->setChecked(true);
 
 	//Height map button.
-	heightMapped->setCheckable(true);
-	heightMapped->setActionGroup(actionGroup);
-	heightMapped->setIcon(QIcon(":/shading_modes/Icons/color.png"));
-	heightMapped->setToolTip(tr("Color-mapped view"));
-	signalMapper->setMapping(heightMapped, 3);
+    _heightMapped->setCheckable(true);
+    _heightMapped->setActionGroup(_actionGroup);
+    _heightMapped->setIcon(QIcon(":/shading_modes/Icons/color.png"));
+    _heightMapped->setToolTip(tr("Color-mapped view"));
+    _signalMapper->setMapping(_heightMapped, 3);
 
 	//Local Csys button.
-	localCsys->setCheckable(true);
-	localCsys->setIcon(QIcon(":/controls/Icons/local-csys.png"));
-	localCsys->setToolTip(tr("Local coordinate system on/off"));
-	localCsys->setChecked(false);
+    _localCsys->setCheckable(true);
+    _localCsys->setIcon(QIcon(":/controls/Icons/local-csys.png"));
+    _localCsys->setToolTip(tr("Local coordinate system on/off"));
+    _localCsys->setChecked(false);
 
 	//World Csys button.
-	worldCsys->setCheckable(true);
-	worldCsys->setIcon(QIcon(":/controls/Icons/world-csys.png"));
-	worldCsys->setToolTip(tr("World coordinate system on/off"));
-	worldCsys->setChecked(false);
+    _worldCsys->setCheckable(true);
+    _worldCsys->setIcon(QIcon(":/controls/Icons/world-csys.png"));
+    _worldCsys->setToolTip(tr("World coordinate system on/off"));
+    _worldCsys->setChecked(false);
 
 	//Background selection button
-	background->setIcon(QIcon(":/controls/Icons/color-wheel.png"));
-	background->setToolTip(tr("Change background color"));
+    _background->setIcon(QIcon(":/controls/Icons/color-wheel.png"));
+    _background->setToolTip(tr("Change background color"));
 }
 
-void
-RangeImageViewer::makeConnections()
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::makeConnections()
 {
-	connect(shaded, SIGNAL(triggered()), signalMapper,
-		SLOT(map()));
-	connect(wireframe, SIGNAL(triggered()), signalMapper,
-		SLOT(map()));
-	connect(textured, SIGNAL(triggered()), signalMapper,
-		SLOT(map()));
-	connect(heightMapped, SIGNAL(triggered()), signalMapper,
-		SLOT(map()));
-	connect(localCsys, SIGNAL(toggled(bool)), renderer,
-		SLOT(setDrawCS(bool)));
-	connect(worldCsys, SIGNAL(toggled(bool)), graphics,
-		SLOT(setDrawCS(bool)));
-	connect(background, SIGNAL(triggered()), this,
-		SLOT(selectBackgroundColor()));
-	connect(renderer, SIGNAL(updateGL()), graphics, SLOT(updateGL()));
-	connect(signalMapper, SIGNAL(mapped(int)), 
-		renderer, SLOT(setDrawMode(int)));
-	connect(graphics, SIGNAL(doubleClicked(int, int)),
-		this, SIGNAL(doubleClicked(int, int)));
+    if (_useViewTools)
+    {
+        connect(_shaded, SIGNAL(triggered()), _signalMapper, SLOT(map()));
+        connect(_wireframe, SIGNAL(triggered()), _signalMapper, SLOT(map()));
+        connect(_textured, SIGNAL(triggered()), _signalMapper, SLOT(map()));
+        connect(_heightMapped, SIGNAL(triggered()), _signalMapper, SLOT(map()));
+        connect(_localCsys, SIGNAL(toggled(bool)), _renderer, SLOT(setDrawCS(bool)));
+        connect(_worldCsys, SIGNAL(toggled(bool)), _graphics, SLOT(setDrawCS(bool)));
+        connect(_background, SIGNAL(triggered()), this, SLOT(selectBackgroundColor()));
+        connect(_signalMapper, SIGNAL(mapped(int)), _renderer, SLOT(setDrawMode(int)));
+    }
+
+    connect(_renderer, SIGNAL(updateGL()), _graphics, SLOT(updateGL()));
+    connect(_graphics, SIGNAL(doubleClicked(int, int)), this, SIGNAL(doubleClicked(int, int)));
+    connect(_graphics, SIGNAL(onLButtonDown(int, int)), this, SLOT(onLButtonDownGraphicsSlot(int, int)));
 }
 
-void
-RangeImageViewer::assemble()
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::assemble()
 {
-	viewTools->setOrientation(Qt::Vertical);
-	viewTools->addAction(shaded);
-	viewTools->addAction(wireframe);
-	viewTools->addAction(textured);
-	viewTools->addAction(heightMapped);
-	viewTools->addSeparator();
-	viewTools->addAction(localCsys);
-	viewTools->addAction(worldCsys);
-	viewTools->addSeparator();
-	viewTools->addAction(background);
-	graphics->setModel(renderer);
-	graphics->setSizePolicy(QSizePolicy::MinimumExpanding,
-		QSizePolicy::MinimumExpanding);
-	mainGrid->addWidget(viewTools, 0, 0);
-	mainGrid->addWidget(graphics, 0, 1);
-	this->setLayout(mainGrid);
-	this->resize(width, height);
+    _graphics->setModel(_renderer);
+    _graphics->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+
+    if (_useViewTools)
+    {
+        _viewTools->setOrientation(Qt::Vertical);
+        _viewTools->addAction(_shaded);
+        _viewTools->addAction(_wireframe);
+        _viewTools->addAction(_textured);
+        _viewTools->addAction(_heightMapped);
+        _viewTools->addSeparator();
+        _viewTools->addAction(_localCsys);
+        _viewTools->addAction(_worldCsys);
+        _viewTools->addSeparator();
+        _viewTools->addAction(_background);
+        _mainGrid->addWidget(_viewTools, 0, 0);
+        _mainGrid->addWidget(_graphics, 0, 1);
+    }
+    else
+    {
+        setContentsMargins(0,0,0,0);
+        _mainGrid->addWidget(_graphics, 0, 0);
+        _mainGrid->setSpacing(0);
+        _mainGrid->setContentsMargins(0,0,0,0);
+    }
+
+    setLayout(_mainGrid);
+    resize(_width, _height);
 }
 
-void
-RangeImageViewer::selectBackgroundColor()
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::selectBackgroundColor()
 {
-	QColor selection = QColorDialog::getColor(
-		"black", this, tr("Select Background Color"));
-	if (selection.isValid())
-		graphics->setBackgroundColor(selection);
+    QColor selection = QColorDialog::getColor("black", this, tr("Select Background Color"));
+    if (selection.isValid()) _graphics->setBackgroundColor(selection);
 }
 
-void
-RangeImageViewer::setFlatDimension(int flatDimension)
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::setFlatDimension(int flatDimension)
 {
 	//Adjust for flat dimension.
 	switch (flatDimension)
 	{
 		case 0:
-			graphics->setMouseMultipliers(QVector3D(6, 1, 1));
+            _graphics->setMouseMultipliers(QVector3D(6, 1, 1));
 			break;
 		case 1:
-			graphics->setMouseMultipliers(QVector3D(1, 6, 1));
+            _graphics->setMouseMultipliers(QVector3D(1, 6, 1));
 			break;
 		case 2:
-			graphics->setMouseMultipliers(QVector3D(1, 1, 6));
+            _graphics->setMouseMultipliers(QVector3D(1, 1, 6));
 	}
 }
 
-void
-RangeImageViewer::rotate(float xAxis, float yAxis, float zAxis)
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::rotate(float xAxis, float yAxis, float zAxis)
 {
-	renderer->setTransformMatrix(QMatrix4x4());
-	renderer->rotate(zAxis, QVector3D(0, 0, 1)); //z roll
-	renderer->rotate(yAxis, QVector3D(0, 1, 0)); //y yaw
-	renderer->rotate(xAxis, QVector3D(1, 0, 0)); //x pitch
-	graphics->updateGL();
+    _renderer->setTransformMatrix(QMatrix4x4());
+    _renderer->rotate(zAxis, QVector3D(0, 0, 1)); //z roll
+    _renderer->rotate(yAxis, QVector3D(0, 1, 0)); //y yaw
+    _renderer->rotate(xAxis, QVector3D(1, 0, 0)); //x pitch
+    _graphics->updateGL();
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() != Qt::LeftButton) return;
+
+    emit onLButtonDown(event->pos().x(), event->pos().y());
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::onLButtonDownGraphicsSlot(int x, int y)
+{
+    emit onLButtonDown(x, y);
 }

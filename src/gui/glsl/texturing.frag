@@ -28,17 +28,16 @@
 
 uniform sampler2D modelTexture;
 
-vec3 lighting(vec3, vec3, vec3, float);
+vec3 lighting(vec3, vec3, vec3);
 
 void
 main()
 {
 	//Surface properties
-	float shine = 5.0f;
+	//float shine = 5.0f;
 	vec3 texture = vec3(texture2D(modelTexture,
 		gl_TexCoord[0].st));
 
 	//Output color
-	gl_FragColor = vec4(lighting(texture,
-		texture, texture, shine), 1.0f);
+	gl_FragColor = vec4(lighting(texture, texture, texture), 1.0f);
 }

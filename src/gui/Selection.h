@@ -45,20 +45,6 @@ class Selection: public QObject
 	///Draw type enum
 	enum drawModes {colPlane, rowPlane};
 
-  protected:
-	//Member variables.
-	QPointF basis; ///< The selected point.
-	QVector3D bbMin; ///< Minimum bounding box corner for object.
-	QVector3D bbMax; ///< Maximum bounding box corner for object.
-	bool enabled; ///< Is selection currently enabled?
-	drawModes mode; ///< Which type of selection to draw.
-	///Selection strength (i.e. height of plane, diameter of circle, etc.)
-	int multiplier;
-
-	//Member functions.
-	void drawColPlane();
-	void drawRowPlane();
-
   public:
 	///Create a selection object.
 	/**
@@ -71,6 +57,9 @@ class Selection: public QObject
 
 	///Draw the selection.
 	virtual void draw();
+
+    void setBbMin(const QVector3D &v) { bbMin = v; }
+    void setBbMax(const QVector3D &v) { bbMax = v; }
 
   public slots:
 	///Update the basis point.
@@ -94,6 +83,21 @@ class Selection: public QObject
 
   signals:
 	void updateGL();  ///< Ask for an OpenGL update.
+
+protected:
+    void drawColPlane();
+    void drawRowPlane();
+
+protected:
+  //Member variables.
+  QPointF basis; ///< The selected point.
+  QVector3D bbMin; ///< Minimum bounding box corner for object.
+  QVector3D bbMax; ///< Maximum bounding box corner for object.
+  bool enabled; ///< Is selection currently enabled?
+  drawModes mode; ///< Which type of selection to draw.
+  ///Selection strength (i.e. height of plane, diameter of circle, etc.)
+  int multiplier;
+
 };
 
 #endif //!defined __SELECTION_H__

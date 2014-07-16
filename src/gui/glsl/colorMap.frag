@@ -64,6 +64,5 @@ main()
 	reflectivity = mult * reflectivity;
 
 	//Output color
-	gl_FragColor = vec4(lighting(reflectivity,
-		reflectivity, reflectivity, shine), 1.0f);
+	gl_FragColor = vec4(lighting(reflectivity, reflectivity, reflectivity, shine), 1.0f);
 }

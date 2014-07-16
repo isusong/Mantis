@@ -358,8 +358,7 @@ RangeImage::scriptableImport(QScriptContext* context,
 	}
 }
 
-RangeImage*
-RangeImage::importFromTxyz(const QString& fname)
+RangeImage* RangeImage::importFromTxyz(const QString& fname)
 {
 	//Report status
 	QString status ("Importing ");

@@ -110,7 +110,7 @@ WindowManager::addSearchWindow(const QString& name, int location,
 
 QString
 WindowManager::getRangeImageWindow(const QString& name,
-	RangeImage* rangeImage, int flatDimension,
+    PRangeImage rangeImage, int flatDimension,
 	int width, int height)
 {
 	RangeImageViewer* viewer = new RangeImageViewer(rangeImage,

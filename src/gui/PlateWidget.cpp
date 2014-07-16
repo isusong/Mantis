@@ -28,7 +28,7 @@
 
 #define EPS 1
 
-PlateWidget::PlateWidget(RangeImage* rangeImage, QWidget *parent):
+PlateWidget::PlateWidget(PRangeImage rangeImage, QWidget *parent):
 	InvestigatorSubWidget(rangeImage, parent)
 {
 	plate = rangeImage;
