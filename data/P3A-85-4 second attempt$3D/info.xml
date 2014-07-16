@@ -1,0 +1,74 @@
+<Object3D type="IFM" signature="0" >
+  <generalData>
+    <name>P3A-85-4 second attempt</name>
+    <specimenName></specimenName>
+    <creatorName>Guest</creatorName>
+    <creationDateTime>2012-10-17T11:16:04</creationDateTime>
+    <deviceName>IFM G3 Measurement Device</deviceName>
+    <description>Processing Start: 2012-10-17T11:04:32
+Processing End: 2012-10-17T11:16:01
+Elapsed Time: 11.49 min
+Product ID: U310305092
+IFM Serial Number: 015412505
+
+Specific Values:
+z range lower: -454.22748µm
+z range upper: -30.425712µm
+Estimated Vertical Resolution: 1.9804531µm
+Averaging: 1
+Lateral Resolution Factor: 1
+Discard Outliers: 0
+Use Hardware Acceleration: No
+Advanced Imagefield Registration: Yes
+
+Number of Images: 10 row(s) x 1 column(s)
+Vignetting Correction: No
+Decimation: 1
+
+Capture Settings:
+Exposure Time: 824.0 µs
+Gamma: 0.84
+Magnification: 9.88474x
+Focus: -20.126543µm
+Saturation: 1
+Gain: 1
+Histogram Lower Bound: 0 / 255
+Histogram Upper Bound: 255 / 255
+High Dynamic: No
+Use Autofocus: No
+
+System adjustment state: not verified</description>
+    <softwareVersion>
+      <major>2</major>
+      <minor>20</minor>
+    </softwareVersion>
+  </generalData>
+  <generalCalibrationData>
+    <pixelsize>
+      <vector size="2" >0.00000080356765148222 0.00000080356765148222 </vector>
+    </pixelsize>
+    <pixelsizeTolerance>
+      <vector size="3" >0.00000000134472857601 0.00000000134472857601 0.00000000000000000000 </vector>
+    </pixelsizeTolerance>
+    <resolution>
+      <vector size="2" >1350 8450 </vector>
+    </resolution>
+    <baseline>
+      <vector size="2" >0 0 </vector>
+    </baseline>
+    <referencePlane>
+      <vector size="3" name="point" >0.000542408164751 0.003395073327512 -0.000334358977852 </vector>
+      <vector size="3" name="normalvector" >0.000000 0.000000 1.000000 </vector>
+    </referencePlane>
+    <depthQuality minVal="0.00000000000000000000" filterVal="0.00001200100000000000" shift="0.00000004706270000000" />
+  </generalCalibrationData>
+  <ifmData>
+    <magnification>1</magnification>
+    <objectiveName>IFM G3 10x</objectiveName>
+    <tubusName>IFM G3 Measurement Device</tubusName>
+    <lightIntensity>1</lightIntensity>
+    <Position3D>
+      <vector size="3" >-0.01606497329694862169 -0.00729146663755889796 0.00000000000000000000 </vector>
+    </Position3D>
+  </ifmData>
+</Object3D>

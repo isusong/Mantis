@@ -1,0 +1,52 @@
+//
+//  Copyright 2008-2014 Iowa State University
+// 
+//  This file is part of Mantis.
+//  
+//  Mantis is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation, either version 3 of the License, or
+//  (at your option) any later version.
+//  
+//  Mantis is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//  
+//  You should have received a copy of the GNU General Public License
+//  along with Mantis.  If not, see <http://www.gnu.org/licenses/>.
+// 
+//  Author: Laura Ekstrand (ldmil@iastate.edu)
+//
+
+* Petraco et al. Statistical Pattern Comparison of Striated Tool Marks. J Forensic Sci. 2012
+
+Summary - Petraco's group gives a full literary search of the existing studies on tool mark and bullet comparisons.  They also describe in detail the recent criticisms concerning tool mark analysis and the admissibility of examiner testimony in court proceedings.  The basics of impression evidence analysis and commericial systems are described. Finally, Petraco et al describes their research into using machine learning methods to match the tool marks.
+
+Relevance - An excellent introduction to the field of impression evidence analysis. Thorough in making arguments for the study of tool mark analysis, but not necessarily thorough in describing previous studies. Provides a roadmap for the original papers on the subject.
+
+* Chumbley et al. Validation of Tool Mark Comparisons Obtained Using a Quantitative, Comparative, Statistical Algorithm. J Forensic Sci. 2010
+
+Summary - This describes the statistical algorithm developed at ISU for comparing single traces of screwdriver marks in lead.  50 sequentially numbered screwdriver tips were used to generate marks at 30, 60, and 85 degrees.  Marks were scanned via profilometer. T1 statistics were calculated for each set of marks, and 20 pairs that were difficult for the algorithm were also compared at the 2008 AFTE training meeting in Honolulu by experienced examiners.  The AFTE meeting revealed the need for contextual clues in the marks to be taken into account by the algorithm.  The examiners on the whole performed better than the algorithm.
+
+Relevance - Mantis Tool Mark Simulator currently uses this statistical algorithm (as a "library") for comparisons between the virtual mark and the evidence mark.  This paper also provides background on the history of impression analysis in foresics, as well as the basis for the beginning of the Tool Mark Simulator.  In other words, it is useful as an illustration of where the research has been.
+
+*R.S. Bolton-King et al. Numerical classification of curvilinear structures for the identification of pistol barrels.  Forensic Science International. 2012.
+
+Summary - Gun barrel (not bullet!) characterization using a mold of the barrel sliced at 3 locations, 2D-imaged, then thresholded using ImageJ, java image processing suite to find the edge.
+
+* R.S. Bolton-King, J.P.O. Evans, C.L. Smith, J.D. Painter, D.F. Allsop, W.M. Cranton
+What are the prospects of 3D profiling systems applied to firearms and toolmark identification?
+AFTE J., 42 (1) (2010), pp. 23–33
+
+Gives justification for Alicona IFM.
+
+* Bachrach B. Development of a 3D-based automated firearms evidence
+comparison system. J Forensic Sci 2002;47(6):1–12.
+
+Preliminary look at 3D bullet profiles.
+
+* Leon F.P. Automated comparison of firearm bullets. Forensic Sci Int
+2006;156:40–50
+
+2D method of comparing rifling marks.

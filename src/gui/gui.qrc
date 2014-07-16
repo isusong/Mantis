@@ -1,0 +1,32 @@
+<RCC>
+  <qresource prefix="/shading_modes">
+    <file>Icons/temp_squish.png</file>
+    <file>Icons/color.png</file>
+    <file>Icons/smooth.png</file>
+    <file>Icons/wire.png</file>
+    <file>Icons/textures.png</file>
+  </qresource>
+  <qresource prefix="/glsl">
+    <file>glsl/colorMap.frag</file>
+    <file>glsl/colorMap.vert</file>
+    <file>glsl/farAwayLight.frag</file>
+    <file>glsl/farAwayLight.vert</file>
+    <file>glsl/hello.frag</file>
+    <file>glsl/hello.vert</file>
+    <file>glsl/helloColorLayers.frag</file>
+    <file>glsl/hologram.frag</file>
+    <file>glsl/lighting.frag</file>
+    <file>glsl/normalMap.frag</file>
+    <file>glsl/texturing.frag</file>
+    <file>glsl/texturing.vert</file>
+    <file>glsl/colorlevels.frag</file>
+    <file>glsl/colorlevels.vert</file>
+  </qresource>
+  <qresource prefix="/controls">
+    <file>Icons/fliplr.png</file>
+    <file>Icons/makeMark.png</file>
+    <file>Icons/local-csys.png</file>
+    <file>Icons/world-csys.png</file>
+    <file>Icons/color-wheel.png</file>
+  </qresource>
+</RCC>

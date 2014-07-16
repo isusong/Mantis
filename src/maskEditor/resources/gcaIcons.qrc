@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/toolbar">
+        <file>tango-icon-theme/draw-eraser.png</file>
+        <file>tango-icon-theme/draw-brush.png</file>
+        <file>tango-icon-theme/appointment-new.png</file>
+        <file>tango-icon-theme/view-fullscreen.png</file>
+        <file>tango-icon-theme/list-add.png</file>
+        <file>tango-icon-theme/view-refresh.png</file>
+        <file>tango-icon-theme/document-save.png</file>
+        <file>tango-icon-theme/document-open.png</file>
+    </qresource>
+</RCC>

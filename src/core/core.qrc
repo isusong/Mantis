@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/glsl">
+    <file>mark.frag</file>
+    <file>mark.vert</file>
+  </qresource>
+</RCC>

@@ -1,0 +1,91 @@
+%
+%  Copyright 2008-2014 Iowa State University
+% 
+%  This file is part of Mantis.
+%  
+%  Mantis is free software: you can redistribute it and/or modify
+%  it under the terms of the GNU General Public License as published by
+%  the Free Software Foundation, either version 3 of the License, or
+%  (at your option) any later version.
+%  
+%  Mantis is distributed in the hope that it will be useful,
+%  but WITHOUT ANY WARRANTY; without even the implied warranty of
+%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%  GNU General Public License for more details.
+%  
+%  You should have received a copy of the GNU General Public License
+%  along with Mantis.  If not, see <http://www.gnu.org/licenses/>.
+% 
+%  Author: Laura Ekstrand (ldmil@iastate.edu)
+%
+
+\documentclass[letterpaper,11pt]{article}
+\usepackage{amsmath}
+\usepackage[top=1.5in, bottom=1in, left=1in, right=1in]{geometry}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{leftidx}
+\usepackage{hyperref}
+
+\title{ToolMarkSimulator Readme Document}
+\author{Laura Ekstrand}
+\date{\today}
+\begin{document}
+\maketitle
+
+\section{Installing Qwt}
+\begin{itemize}
+\item Go to \url{http://sourceforge.net/projects/qwt/}. Click on the
+Files tab (don't just click the download link; they're not good about updating
+it  to the latest version). Click on the qwt folder and then the latest
+release folder (as of now use version 6.0.1).  Download the zip file. (Linux
+users might be able to bypass this step and the next two steps by downloading
+a binary from the package manager -- but (very important!) check to make sure it is the latest
+version of Qwt.)
+
+\item Extract the files to a folder you have access to.  I recommend a folder
+called build in your home directory.
+\item Build qwt:  
+If you are on Linux, open a terminal and go to the qwt folder
+that you extracted. Type
+
+{\tt qmake
+
+make
+
+make install.}
+
+If you are on Windows, open the .pro file in the recently extracted folder with
+QtCreator.  Choose a build target of Desktop with shadow building checked.
+Build the project. When it successfully builds, close QtCreator.
+Open the MSVC terminal. Type
+
+{\tt nmake
+
+nmake install.}
+
+\item  Set the configuration features: (This is described here, for reference:
+\url
+{http://doc.qt.nokia.com/4.7-snapshot/qmake-advanced-usage.html#adding-new-configuration-features})
+
+
+
+Go to the directory where Qwt is installed.  On Linux, I think this is under
+usr/. On Windows, it will be on C:. Find the qwt.prf file (it should be in the
+features folder; careful, Windows mistakenly calls it a PICS Resource File or something
+like that). Copy or otherwise remember the path to this file.
+
+On Linux, go to your home directory and edit your .bashrc file (or the config
+file for whatever shell you are using).  On Windows, go to Start Menu
+$\rightarrow$ Computer
+$\rightarrow$ System Properties $\rightarrow$ Advanced? $\rightarrow$ Environment Variables.  In either case, add the environment variable
+{\tt QMAKEFEATURES = [path to qwt.prf]}.
+
+\item Now that the QMAKEFEATURES environment variable is set, the {\tt CONFIG
++= qwt}
+line in your .pro file should work to add in the qwt library.  Of course, you
+still need to include your qwt headers in your code.
+\end{itemize}
+
+\end{document}
+

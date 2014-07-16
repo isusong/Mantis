@@ -1,0 +1,24 @@
+var searchData=
+[
+  ['scene_2eh',['scene.h',['../scene_8h.html',1,'']]],
+  ['scriptinterface_2ecpp',['ScriptInterface.cpp',['../_script_interface_8cpp.html',1,'']]],
+  ['scriptinterface_2eh',['ScriptInterface.h',['../_script_interface_8h.html',1,'']]],
+  ['selection_2ecpp',['Selection.cpp',['../_selection_8cpp.html',1,'']]],
+  ['selection_2eh',['Selection.h',['../_selection_8h.html',1,'']]],
+  ['settingsdialog_2ecpp',['settingsDialog.cpp',['../settings_dialog_8cpp.html',1,'']]],
+  ['settingsdialog_2eh',['settingsDialog.h',['../settings_dialog_8h.html',1,'']]],
+  ['spikeremoval_2ecpp',['SpikeRemoval.cpp',['../_spike_removal_8cpp.html',1,'']]],
+  ['spikeremoval_2eh',['SpikeRemoval.h',['../_spike_removal_8h.html',1,'']]],
+  ['statinterface_2ecpp',['StatInterface.cpp',['../_stat_interface_8cpp.html',1,'']]],
+  ['statinterface_2eh',['StatInterface.h',['../_stat_interface_8h.html',1,'']]],
+  ['statisticssettingsdialog_2ecpp',['StatisticsSettingsDialog.cpp',['../_statistics_settings_dialog_8cpp.html',1,'']]],
+  ['statisticssettingsdialog_2eh',['StatisticsSettingsDialog.h',['../_statistics_settings_dialog_8h.html',1,'']]],
+  ['statisticswidget_2ecpp',['StatisticsWidget.cpp',['../_statistics_widget_8cpp.html',1,'']]],
+  ['statisticswidget_2eh',['StatisticsWidget.h',['../_statistics_widget_8h.html',1,'']]],
+  ['statplot_2ecpp',['statPlot.cpp',['../stat_plot_8cpp.html',1,'']]],
+  ['statplot_2eh',['statPlot.h',['../stat_plot_8h.html',1,'']]],
+  ['stats_2ecpp',['stats.cpp',['../stats_8cpp.html',1,'']]],
+  ['stats_2eh',['stats.h',['../stats_8h.html',1,'']]],
+  ['streambuffer_2ecpp',['StreamBuffer.cpp',['../_stream_buffer_8cpp.html',1,'']]],
+  ['streambuffer_2eh',['StreamBuffer.h',['../_stream_buffer_8h.html',1,'']]]
+];
