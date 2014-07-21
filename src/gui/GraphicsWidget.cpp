@@ -36,10 +36,11 @@
 
 //=======================================================================
 //=======================================================================
-GraphicsWidget::GraphicsWidget(QWidget* parent):
+GraphicsWidget::GraphicsWidget(WidgetLoc loc, QWidget* parent):
 	QGLWidget(parent)
 {
     _showWindowSelected = false;
+    _wloc = loc;
 
 	//Set timer to updateGL() every 20 msecs.
     _timer = new QTimer(this);
@@ -496,12 +497,18 @@ void GraphicsWidget::drawWindowSelected()
         glVertex2f(1, b);
 
         // vertical left
-        glVertex2f(l, t);
-        glVertex2f(l, b);
+        if (_wloc != Right)
+        {
+            glVertex2f(l, t);
+            glVertex2f(l, b);
+        }
 
         // vertical right
-        glVertex2f(r, t);
-        glVertex2f(r, b);
+        if (_wloc != Left)
+        {
+            glVertex2f(r, t);
+            glVertex2f(r, b);
+        }
 
     glEnd();
 
@@ -517,4 +524,16 @@ void GraphicsWidget::drawWindowSelected()
 
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
+}
+
+//=======================================================================
+//=======================================================================
+void GraphicsWidget::keyPressEvent(QKeyEvent * event)
+{
+    QGLWidget::keyPressEvent(event);
+
+    if (event->key() == Qt::Key_Escape)
+    {
+        setWindowSelected(false);
+    }
 }

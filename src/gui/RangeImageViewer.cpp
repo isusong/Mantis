@@ -37,7 +37,7 @@ RangeImageViewer::RangeImageViewer(PRangeImage rangeImage, bool useViewTools, in
     _width = w;
     _height = h;
     _mainGrid = new QGridLayout(this);
-    _graphics = new GraphicsWidget(this);
+    _graphics = new GraphicsWidget(GraphicsWidget::None, this);
     _renderer = new RangeImageRenderer(rangeImage, this);
 
     _viewTools = NULL;
@@ -258,6 +258,16 @@ void RangeImageViewer::rotate(float xAxis, float yAxis, float zAxis)
     _renderer->rotate(yAxis, QVector3D(0, 1, 0)); //y yaw
     _renderer->rotate(xAxis, QVector3D(1, 0, 0)); //x pitch
     _graphics->updateGL();
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::keyPressEvent(QKeyEvent * event)
+{
+    if (event->key() == Qt::Key_Escape)
+    {
+        setWindowSelected(false);
+    }
 }
 
 //=======================================================================

@@ -50,11 +50,21 @@ class GraphicsWidget: public QGLWidget
 	Q_OBJECT
 
 public:
+    enum WidgetLoc
+    {
+        None,
+        Left,
+        Right
+    };
+
+public:
     ///Create an empty scene.
-	GraphicsWidget(QWidget* parent = 0);
+    GraphicsWidget(WidgetLoc loc=None, QWidget* parent = 0);
 	virtual ~GraphicsWidget();
 	///Add the model to the scene. Does not take ownership of the pointer.
 	void setModel(GenericModel* newModel);
+
+    void setWidgetLoc(WidgetLoc loc) { _wloc = loc; }
 
 	//Mouse functions
 	void mousePressEvent(QMouseEvent * event);
@@ -103,6 +113,9 @@ signals:
 
 protected:
     //Protected member functions
+
+    virtual void keyPressEvent(QKeyEvent * event);
+
     ///Perform init functions.
     void initializeGL();
     ///Do the actual rendering.
@@ -118,6 +131,7 @@ protected:
 
   //Member variables.
   bool _showWindowSelected;
+  WidgetLoc _wloc;
 
   ///QT Pointer to model object.
   QPointer<GenericModel> _model;

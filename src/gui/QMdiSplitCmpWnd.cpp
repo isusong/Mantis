@@ -24,7 +24,7 @@ void QMdiSplitCmpWnd::init()
     setAttribute(Qt::WA_DeleteOnClose);
 
     _splitter = new QSplitter;
-    //splitter->setHandleWidth(2);
+    _splitter->setHandleWidth(1);
 
     setWidget(_splitter);
     setWindowTitle("Split Comparison");
@@ -50,10 +50,12 @@ void QMdiSplitCmpWnd::init()
 
     _imgViewer0 = new RangeImageViewer(img, false, -1, 500, 500, _splitter);
     _splitter->addWidget(_imgViewer0);
+    _imgViewer0->getGraphicsWidget()->setWidgetLoc(GraphicsWidget::Left);
     _imgViewer0->show();
 
     _imgViewer1 = new RangeImageViewer(PRangeImage(), false, -1, 500, 500, _splitter);
     _splitter->addWidget(_imgViewer1);
+    _imgViewer1->getGraphicsWidget()->setWidgetLoc(GraphicsWidget::Right);
     _imgViewer1->show();
 
 
@@ -455,4 +457,11 @@ void QMdiSplitCmpWnd::onTranslationViewer1(QVector3D trans)
 void QMdiSplitCmpWnd::onRotationViewer1(QVector3D rot)
 {
     emit onChangedRotation(1, rot);
+}
+
+//=======================================================================
+//=======================================================================
+void QMdiSplitCmpWnd::mousePressEvent(QMouseEvent *event)
+{
+    QMdiSubWindow::mousePressEvent(event);
 }

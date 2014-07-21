@@ -111,6 +111,7 @@ protected:
     void assemble();
 
     virtual void mousePressEvent(QMouseEvent *event);
+    virtual void keyPressEvent(QKeyEvent * event);
 
 protected:
     int _width;

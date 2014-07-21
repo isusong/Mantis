@@ -61,6 +61,7 @@ signals:
 
 protected:
 
+    virtual void mousePressEvent(QMouseEvent *event);
     virtual void closeEvent(QCloseEvent *closeEvent);
     void makeConnections();
 

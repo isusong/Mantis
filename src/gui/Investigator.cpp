@@ -540,3 +540,10 @@ void Investigator::slotSplitCmpWndClosed()
     if (_dockCmpViewCtrls) _dockCmpViewCtrls->hide();
     if (_dockCmpThumbLoader) _dockCmpThumbLoader->hide();
 }
+
+//=======================================================================
+//=======================================================================
+void Investigator::keyPressEvent(QKeyEvent* event)
+{
+    QMainWindow::keyPressEvent(event);
+}

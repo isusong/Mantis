@@ -64,6 +64,7 @@ public slots:
     void slotSplitCmpWndClosed();
 
 protected:
+    virtual void keyPressEvent(QKeyEvent* event);
     virtual void closeEvent(QCloseEvent *closeEvent);
     void saveDocStates(QDockWidget *doc);
     void loadDocStates(QDockWidget *doc);
