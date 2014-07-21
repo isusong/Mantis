@@ -60,6 +60,11 @@ int main(int argc, char** argv)
 	app.setQuitOnLastWindowClosed(false);
 	ScriptInterface scripter;
 
+    // for QSettings
+    QCoreApplication::setOrganizationName("Iowa State University");
+    QCoreApplication::setOrganizationDomain("iastate.edu");
+    QCoreApplication::setApplicationName("Mantis");
+
 	//Allow user to create instances of objects.
 	scripter.AddObjectType<RangeImage, QString>("RangeImage");
 	scripter.AddObjectType<Clean>("Clean");

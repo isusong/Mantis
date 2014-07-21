@@ -19,14 +19,36 @@
 #  Author: Laura Ekstrand (ldmil@iastate.edu)
 # 
 
-TARGET = mantis
+# TARGET = mantis
+
+# ensure one "debug_and_release" in CONFIG, for clarity...
+debug_and_release {
+    CONFIG -= debug_and_release
+    CONFIG += debug_and_release
+}
+    # ensure one "debug" or "release" in CONFIG so they can be used as
+    #   conditionals instead of writing "CONFIG(debug, debug|release)"...
+CONFIG(debug, debug|release) {
+    CONFIG -= debug release
+    CONFIG += debug
+}
+CONFIG(release, debug|release) {
+    CONFIG -= debug release
+    CONFIG += release
+}
+
+win32:CONFIG(release, debug|release): TARGET = mantis
+else:win32:CONFIG(debug, debug|release): TARGET = mantisd
+else: TARGET = mantis
+
 QT += opengl \
 	  script
 unix:LIBS += -lGLU
 win32:LIBS += -lGLU32
-CONFIG += debug
+# CONFIG += debug
 CONFIG += console
 CONFIG += qwt
+
 
 HEADERS += \
 	../core/RangeImage.h \
@@ -44,6 +66,8 @@ HEADERS += \
 	../core/CsvTable.h \
 	../core/VirtualTip.h \
 	../core/StreamBuffer.h \
+        ../core/logger.h \
+        ../core/utlqt.h \
 	../QtBoxesDemo/QGLExtensionWrangler/glextensions.h \
 	../core/StatInterface.h \
 	../StatisticsLibrary/io/converttracetoint.h \
@@ -72,7 +96,14 @@ HEADERS += \
 	../gui/InvestigatorSubWidget.h \
 	../gui/TipWidget.h \
 	../gui/PlateWidget.h \
-	../gui/Selection.h
+	../gui/Selection.h \
+    ../gui/SplitCmpThumbLoaderWidget.h \
+    ../gui/SplitCmpViewCtrlsWidget.h \
+    ../gui/QListWidgetItemEx.h \
+    ../gui/QMdiSplitCmpWnd.h \
+    ../core/box.h \
+    ../core/vector3.h \
+    ../core/basevector.h
 
 SOURCES += \
 	../core/RangeImage.cpp \
@@ -90,6 +121,8 @@ SOURCES += \
 	../core/CsvTable.cpp \
 	../core/VirtualTip.cpp \
 	../core/StreamBuffer.cpp \
+        ../core/logger.cpp \
+        ../core/utlqt.cpp \
 	../QtBoxesDemo/QGLExtensionWrangler/glextensions.cpp \
 	../core/StatInterface.cpp \
 	../StatisticsLibrary/base/FlippableCorLoc.cpp \
@@ -113,10 +146,32 @@ SOURCES += \
 	../gui/TipWidget.cpp \
 	../gui/PlateWidget.cpp \
 	../gui/Selection.cpp \
-	main.cpp
+	main.cpp \
+    ../gui/SplitCmpThumbLoaderWidget.cpp \
+    ../gui/SplitCmpViewCtrlsWidget.cpp \
+    ../gui/QListWidgetItemEx.cpp \
+    ../gui/QMdiSplitCmpWnd.cpp
 
 RESOURCES += ../core/core.qrc \
 			 ../gui/gui.qrc
 
 FORMS += ../gui/StatisticsWidget.ui \
-		 ../gui/StatisticsSettingsDialog.ui
+		 ../gui/StatisticsSettingsDialog.ui \
+    ../gui/SplitCmpThumbLoaderWidget.ui \
+    ../gui/SplitCmpViewCtrlsWidget.ui
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../qwt_Qt481_Release/lib/ -lqwt
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../qwt_Qt481_Debug/lib/ -lqwtd
+else:symbian: LIBS += -lqwt
+else:unix: LIBS += -L$$PWD/../../../qwt_MSVC2008_Debug/lib/ -lqwt
+
+INCLUDEPATH += $$PWD/../../../qwt-6.1/src
+DEPENDPATH += $$PWD/../../../qwt-6.1/src
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../qwt_Qt481_Release/lib/ -lqwtmathml
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../qwt_Qt481_Debug/lib/ -lqwtmathmld
+else:symbian: LIBS += -lqwtmathml
+else:unix: LIBS += -L$$PWD/../../../qwt_MSVC2008_Debug/lib/ -lqwtmathml
+
+INCLUDEPATH += $$PWD/../../../qwt-6.1/src
+DEPENDPATH += $$PWD/../../../qwt-6.1/src
