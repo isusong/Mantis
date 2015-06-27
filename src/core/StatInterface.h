@@ -54,38 +54,16 @@ class StatInterface: public QObject, protected QScriptable
 	Q_PROPERTY(int loc1 READ getLoc1)
 	Q_PROPERTY(int loc2 READ getLoc2)
 
-  protected:
-	//Input settings.
-	int searchWindow; ///<Size of search window.
-	int validWindow; ///<Size of validation window.
-	int numRigidPairs;
-	int numRandomPairs;
-	/**
-	 * A value between 0 and 1 to multiply the maximum shift
-	 * possible between search windows by during the location of 
-	 * the region of maximum correlation. This is an attempt to
-	 * solve the opposite-end problem.
-	 */
-	float maxShiftPercentage;
-	///How many samples of T do you want (for an averaged T)?
-	int T_sample_size;
-
-	//Outputs.
-	double rValue, tValue;
-	int loc1, loc2;
-
-	//Private functions
-	///Convert a QVector<float> to a QVector<double>
-	QVector<double> toDouble(const QVector<float> data);
-	///Trim the masked ends off of a Profile and return it as a QVector<float>.
-	/**
-	 * Masked points in the middle of the Profile will be included in the 
-	 * QVector<float>.  This is because the stat package does not understand
-	 * the concept of masked points.
-	 *
-	 * Does not delete pointer.
-	 */
-	QVector<float> trimProfileEnds(Profile* data);
+  public:
+    struct StatConfig
+    {
+        int searchWindow;
+        int validWindow;
+        int numRigidPairs;
+        int numRandomPairs;
+        float maxShiftPercentage;
+        int tSampleSize;
+    };
 
   public:
 	///Create a parented object.
@@ -102,7 +80,9 @@ class StatInterface: public QObject, protected QScriptable
 	 * Does not delete either pointer.
 	 * May throw std::range_error or std::runtime_error.
 	 */
-	void compare(Profile* data1, Profile* data2);
+    void compare(Profile *data1, Profile *data2);
+
+    StatConfig getConfig();
 
   public slots:
 	///Wraps the comparison for scripting.
@@ -125,6 +105,8 @@ class StatInterface: public QObject, protected QScriptable
 	inline double getRValue() {return rValue;}
 	inline int getLoc1() {return loc1;}
 	inline int getLoc2() {return loc2;}
+    inline int getDataLen1() { return _dataLen1; }
+    inline int getDataLen2() { return _dataLen2; }
 
 	//Set inputs.
 	///Set the size of the search window.
@@ -139,8 +121,44 @@ class StatInterface: public QObject, protected QScriptable
 	void setTSampleSize(int num);
 	///Set the maximum shift percentage (the "leash")
 	void setMaxShiftPercentage(double num);
+
+protected:
+  //Input settings.
+  int searchWindow; ///<Size of search window.
+  int validWindow; ///<Size of validation window.
+  int numRigidPairs;
+  int numRandomPairs;
+  /**
+   * A value between 0 and 1 to multiply the maximum shift
+   * possible between search windows by during the location of
+   * the region of maximum correlation. This is an attempt to
+   * solve the opposite-end problem.
+   */
+  float maxShiftPercentage;
+  ///How many samples of T do you want (for an averaged T)?
+  int T_sample_size;
+
+  //Outputs.
+  double rValue, tValue;
+  int loc1, loc2;
+  int _dataLen1, _dataLen2;
+
+  //Private functions
+  ///Convert a QVector<float> to a QVector<double>
+  QVector<double> toDouble(const QVector<float> data);
+  ///Trim the masked ends off of a Profile and return it as a QVector<float>.
+  /**
+   * Masked points in the middle of the Profile will be included in the
+   * QVector<float>.  This is because the stat package does not understand
+   * the concept of masked points.
+   *
+   * Does not delete pointer.
+   */
+  QVector<float> trimProfileEnds(Profile *data);
 };
 
 Q_DECLARE_METATYPE(StatInterface*)
+
+typedef std::tr1::shared_ptr<StatInterface> PStatInterface;
 
 #endif //!defined __STATINTERFACE_H__

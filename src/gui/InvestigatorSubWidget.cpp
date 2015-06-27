@@ -33,14 +33,14 @@ InvestigatorSubWidget::InvestigatorSubWidget(PRangeImage rangeImage,
 	QWidget(parent)
 {
 	//Create the data objects.
-	profile = NULL; //no virtual mark or cross-section yet.
+    //profile = NULL; //no virtual mark or cross-section yet.
 
 	//Create the gui objects.
 	grid = new QGridLayout(this);
 	horizontalSplitter = new QSplitter(this);
-    graphics = new RangeImageViewer(rangeImage, true, -1, 330, 250, this);
+    graphics = new RangeImageViewer(rangeImage, false, true, -1, 330, 250, this);
 	verticalSplitter = new QSplitter(Qt::Vertical, this);
-	plot = new statPlot(this);
+    plot = new StatPlot(this);
 	controls = new QGroupBox(this);
 	flipButton = new QToolButton(controls);
 
@@ -81,7 +81,7 @@ InvestigatorSubWidget::InvestigatorSubWidget(PRangeImage rangeImage,
 //=======================================================================
 InvestigatorSubWidget::~InvestigatorSubWidget()
 {
-	delete profile;
+    //delete profile;
 	//everything else is parented and will get auto-deleted.
 }
 
@@ -102,8 +102,7 @@ void InvestigatorSubWidget::makeConnections()
 	connect(flipButton, SIGNAL(pressed()), this, SLOT(flip()));
 
 	//Forward plot changes.
-	connect(plot, SIGNAL(profileChanged(Profile*, bool)),
-		this, SIGNAL(profileChanged(Profile*, bool)));
+    connect(plot, SIGNAL(profileChanged(PProfile, bool)), this, SIGNAL(profileChanged(PProfile, bool)));
 }
 
 //=======================================================================
@@ -126,7 +125,8 @@ void InvestigatorSubWidget::assemble()
 //=======================================================================
 void InvestigatorSubWidget::stalePlots()
 {
-	plot->setProfile(NULL);
+    //plot->setProfile(NULL);
+    plot->setProfile(PProfile());
 	plot->setSearchWindow(0, 0);
 	flipButton->setEnabled(false);
 	plot->setEnabled(false);
@@ -134,22 +134,27 @@ void InvestigatorSubWidget::stalePlots()
 
 //=======================================================================
 //=======================================================================
-void InvestigatorSubWidget::setSearchWindow(int loc, int width)
+void InvestigatorSubWidget::setSearchWindow(int loc, int width, int dataLen)
 {
-	if (NULL != profile)
+    Q_UNUSED(dataLen);
+
+    if (NULL != _profile)
+    {
 		plot->setSearchWindow(loc, width);
+    }
 }
 
 //=======================================================================
 //=======================================================================
 void InvestigatorSubWidget::flip()
 {
-	if (NULL != profile)
+    if (NULL != _profile)
 	{
-		Profile* flipped = profile->flip();
-		delete profile;
-		profile = flipped;
+        Profile* flipped = _profile->flip();
+        //delete profile;
+        //profile = flipped;
+        _profile.reset(flipped);
 		plot->setSearchWindow(0, 0);
-		plot->setProfile(profile);
+        plot->setProfile(_profile);
 	}
 }

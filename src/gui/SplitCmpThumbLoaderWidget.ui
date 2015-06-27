@@ -15,10 +15,17 @@
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
-    <widget class="QListWidget" name="listWidgetThumbs"/>
+    <widget class="QListWidgetEx" name="listWidgetThumbs"/>
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QListWidgetEx</class>
+   <extends>QListWidget</extends>
+   <header>QListWidgetEx.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

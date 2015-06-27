@@ -1,0 +1,44 @@
+#include "InvSettings.h"
+
+InvSettings::InvSettings()
+{
+}
+
+//=======================================================================
+//=======================================================================
+void InvSettings::saveDocStates(QDockWidget *doc)
+{
+    if (!doc) return;
+    if (!doc->isVisible()) return;
+
+    QSettings settings;
+    settings.beginGroup(doc->windowTitle());
+    settings.setValue("pos", doc->pos());
+    settings.setValue("floating", doc->isFloating());
+    settings.setValue("docWidgetArea", dockWidgetArea(doc));
+    settings.endGroup();
+}
+
+//=======================================================================
+//=======================================================================
+void InvSettings::loadDocStates(QDockWidget *doc)
+{
+    if (!doc) return;
+
+    QSettings settings;
+    settings.beginGroup(doc->windowTitle());
+
+    bool floating = settings.value("floating", doc->isFloating()).toBool();
+    doc->setFloating(floating);
+
+    if (floating)
+    {
+        QPoint pt = settings.value("pos", doc->pos()).toPoint();
+        doc->move(pt);
+    }
+    else
+    {
+        Qt::DockWidgetArea docArea = (Qt::DockWidgetArea)settings.value("docWidgetArea", Qt::NoDockWidgetArea).toInt();
+        addDockWidget(docArea, doc);
+    }
+}

@@ -21,6 +21,8 @@
         <file>glsl/texturing.vert</file>
         <file>glsl/colorlevels.frag</file>
         <file>glsl/colorlevels.vert</file>
+        <file>glsl/colorMapTip.frag</file>
+        <file>glsl/colorMapTip.vert</file>
     </qresource>
     <qresource prefix="/controls">
         <file>Icons/fliplr.png</file>
@@ -28,6 +30,16 @@
         <file>Icons/local-csys.png</file>
         <file>Icons/world-csys.png</file>
         <file>Icons/color-wheel.png</file>
+        <file>Icons/draw-brush.png</file>
+        <file>Icons/draw-eraser.png</file>
+        <file>Icons/document-open.png</file>
+        <file>Icons/document-save.png</file>
+        <file>Icons/settings_36.png</file>
+        <file>Icons/document-save-as.png</file>
+        <file>Icons/edit-clear.png</file>
+        <file>Icons/import-plate.png</file>
+        <file>Icons/import-tip.png</file>
+        <file>Icons/mask-clear.png</file>
     </qresource>
     <qresource prefix="/general">
         <file>Icons/questionmark.png</file>

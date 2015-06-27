@@ -42,7 +42,9 @@ using std::auto_ptr;
 using std::runtime_error;
 
 StatInterface::StatInterface(QObject *parent):
-	QObject(parent)
+    QObject(parent),
+    _dataLen1(0),
+    _dataLen2(0)
 {
 	//Default values (from Amy's mytest.param).
 	T_sample_size = 200; 
@@ -58,10 +60,21 @@ StatInterface::~StatInterface()
 
 }
 
+StatInterface::StatConfig StatInterface::getConfig()
+{
+    StatConfig cfg;
+    cfg.searchWindow = searchWindow;
+    cfg.validWindow = validWindow;
+    cfg.numRigidPairs = numRigidPairs;
+    cfg.numRandomPairs = numRandomPairs;
+    cfg.maxShiftPercentage = maxShiftPercentage;
+    cfg.tSampleSize = T_sample_size;
+    return cfg;
+}
+
 //This works without deep copies because 
 //QVector is implicitly shared.
-QVector<double>
-StatInterface::toDouble(const QVector<float> data)
+QVector<double> StatInterface::toDouble(const QVector<float> data)
 {
 	QVector<double> ret;
 	for (int i = 0; i < data.size(); ++i)
@@ -71,8 +84,7 @@ StatInterface::toDouble(const QVector<float> data)
 	return ret;
 }
 
-QVector<float>
-StatInterface::trimProfileEnds(Profile* data)
+QVector<float> StatInterface::trimProfileEnds(Profile *data)
 {
 	//Cache some things.
 	QVector<float> depth = data->getDepth();
@@ -107,15 +119,12 @@ StatInterface::trimProfileEnds(Profile* data)
 	return ret;
 }
 
-void
-StatInterface::compare(QVector<float> data1, QVector<float> data2)
+void StatInterface::compare(QVector<float> data1, QVector<float> data2)
 {
 	//Vector prep.
 	ConvertTraceToInt intConverter;
-	auto_ptr<vector<int> > trace1 = 
-		intConverter(toDouble(data1).toStdVector());
-	auto_ptr<vector<int> > trace2 = 
-		intConverter(toDouble(data2).toStdVector());
+    auto_ptr<vector<int> > trace1 = intConverter(toDouble(data1).toStdVector());
+    auto_ptr<vector<int> > trace2 = intConverter(toDouble(data2).toStdVector());
 	
 	//Run without checking for flips.
 	//maxCorWithFlips is in flipcorrelation.h.
@@ -123,6 +132,9 @@ StatInterface::compare(QVector<float> data1, QVector<float> data2)
 	//returned c.loc1(), c.loc2() in c object should be unique."
 	const int length1 = trace1->size();
 	const int length2 = trace2->size();
+    _dataLen1 = length1;
+    _dataLen2 = length2;
+
 	FlippableCorLoc c (0, 0, 0, true); //"default" FCL object.
 	try
 	{
@@ -205,8 +217,7 @@ StatInterface::compare(QVector<float> data1, QVector<float> data2)
 	loc2 = c.loc2();
 }
 
-void
-StatInterface::compare(Profile* data1, Profile* data2)
+void StatInterface::compare(Profile *data1, Profile *data2)
 {
 	if (data1->getPixelSize() != data2->getPixelSize())
 	{
@@ -221,8 +232,7 @@ StatInterface::compare(Profile* data1, Profile* data2)
 	compare(trimProfileEnds(data1), trimProfileEnds(data2));
 }
 
-QScriptValue
-StatInterface::compare()
+QScriptValue StatInterface::compare()
 {
 	int argc = argumentCount();
 	if (argc < 2)
@@ -250,38 +260,32 @@ StatInterface::compare()
 	return QScriptValue(); //~ void
 }
 
-void
-StatInterface::setSearchWindow(int width)
+void StatInterface::setSearchWindow(int width)
 {
 	searchWindow = width;
 }
 
-void
-StatInterface::setValidWindow(int width)
+void StatInterface::setValidWindow(int width)
 {
 	validWindow = width;
 }
 
-void
-StatInterface::setNumRigidPairs(int num)
+void StatInterface::setNumRigidPairs(int num)
 {
 	numRigidPairs = num;
 }
 
-void
-StatInterface::setNumRandomPairs(int num)
+void StatInterface::setNumRandomPairs(int num)
 {
 	numRandomPairs = num;
 }
 
-void
-StatInterface::setTSampleSize(int num)
+void StatInterface::setTSampleSize(int num)
 {
 	T_sample_size = num;
 }
 
-void
-StatInterface::setMaxShiftPercentage(double num)
+void StatInterface::setMaxShiftPercentage(double num)
 {
 	maxShiftPercentage = (float) num;
 }

@@ -32,139 +32,295 @@
 #include <cfloat>
 #include <QFileInfo>
 #include <QTextStream>
+#include <QPainter>
 #include <cmath>
+#include "logger.h"
 
 #define CONVERT 1E6 ///Convert al3d from meters to um
 
+//=======================================================================
+//=======================================================================
 RangeImage::RangeImage(const QString& fname, QObject* parent):
-	QObject(parent)
+    QObject(parent),
+    _dataNull(true)
 {
-	//Init members
-	null = true;
-	
-	//Report status as loading.
-	QString status ("Loading ");
-	status.append(fname);
-	qDebug() << status;
-	emit statusMessage(status);
-
-	//Open the file
-	QFile file (fname);
-	if (!file.open(QIODevice::ReadOnly)) 
-	{
-		QString warning ("Error opening file ");
-		warning.append(fname);
-		qDebug() << warning;
-		emit warningMessage(warning);
-		return;
-	}
-
-	//Serializer object for QT classes.
-	QDataStream fileReader(&file);
-	fileReader.setVersion(QDataStream::Qt_4_8);
-	fileReader.setFloatingPointPrecision(QDataStream::
-		SinglePrecision);
-
-	//Check fileID and version.
-	QString fileID;
-	fileReader >> fileID;
-	if (QString("Mantis Tip File") != fileID)
-	{
-		QString warning (fname);
-		warning.append(": Not a Mantis Tip File.");
-		qDebug() << warning;
-		emit warningMessage(warning);
-		return;
-	}
-	qint32 version;
-	fileReader >> fileID; //get rid of the "Version: " string.
-	fileReader >> version;
-	if ((1 != version) && (2 != version))
-	{
-		QString versionWarning ("This file is .mt version ");
-		versionWarning.append(QString::number((int) version));
-		versionWarning.append(". Only versions 1 and 2 are supported.");
-		qDebug() << versionWarning;
-		emit warningMessage(versionWarning);
-		return;
-	}
-
-	//Read in the data.
-	//Version 1 assumes pixelSizeX = pixelSizeY.
-	//Version 2 does not make this assumption.
-	if (1 == version)
-	{
-		float pixelSize;
-		fileReader >> width >> height >> pixelSize;
-		pixelSizeX = pixelSize;
-		pixelSizeY = pixelSize;
-	}
-	else
-	{
-		fileReader >> width >> height >> 
-			pixelSizeX >> pixelSizeY;
-	}
-	fileReader >> depth;
-	fileReader >> texture;
-	fileReader >> mask;
-	fileReader >> coordinateSystem;
-
-	file.close();
-
-	//Check to see if loaded data is consistent.
-	null = !isConsistent();
+    loadFile(fname);
 }
 
+//=======================================================================
+//=======================================================================
+RangeImage::RangeImage(const QString& fname, bool loadIconOnly, QObject* parent):
+    QObject(parent),
+    _dataNull(true)
+{
+    loadFile(fname, loadIconOnly);
+}
+
+//=======================================================================
+//=======================================================================
 RangeImage::RangeImage(int w, int h, float pixX,
 	float pixY, QVector<float> zdata, QImage tex2D, 
-	QBitArray maskdata, QMatrix4x4& csys, QObject* parent):
+    QBitArray maskdata, QMatrix4x4& csys, EImgType imgType, QString fileName, QObject* parent):
 	QObject(parent)
 {
 	//Data assignment
-	width = w;
-	height = h;
-	pixelSizeX = pixX;
-	pixelSizeY = pixY;
-	depth = zdata;
-	texture = tex2D;
-	mask = maskdata;
-	coordinateSystem = csys;
+    _imgType = imgType;
+    _fileName = fileName;
+    _width = w;
+    _height = h;
+    _pixelSizeX = pixX;
+    _pixelSizeY = pixY;
+    _depth = zdata;
+    _texture = tex2D;
+    _mask = maskdata;
+    _coordinateSystem = csys;
 
 	//Member assignment
-	null = !isConsistent();
+    _dataNull = !isConsistent();
 }
 
+//=======================================================================
+//=======================================================================
 RangeImage::RangeImage(const RangeImage& other,
 	QObject *parent):
 	QObject(parent)
 {
 	//Data assignment
-	width = other.getWidth();
-	height = other.getHeight();
-	pixelSizeX = other.getPixelSizeX();
-	pixelSizeY = other.getPixelSizeY();
-	depth = other.getDepth();
-	texture = other.getTexture();
-	mask = other.getMask();
-	coordinateSystem = other.getCoordinateSystemMatrix();
+    _imgType = ImgType_Unk;
+    _width = other.getWidth();
+    _height = other.getHeight();
+    _pixelSizeX = other.getPixelSizeX();
+    _pixelSizeY = other.getPixelSizeY();
+    _icon = other.getIcon();
+    _depth = other.getDepth();
+    _texture = other.getTexture();
+    _mask = other.getMask();
+    _coordinateSystem = other.getCoordinateSystemMatrix();
 
 	//Member assignment
-	null = !isConsistent();
+    _dataNull = !isConsistent();
 }
 
+//=======================================================================
+//=======================================================================
 RangeImage::~RangeImage()
 {
 
 }
 
-bool
-RangeImage::isConsistent()
+//=======================================================================
+//=======================================================================
+bool RangeImage::loadFile(const QString& fname, bool iconOnly)
+{
+    //Init members
+    _dataNull = true;
+    _imgType = ImgType_Unk;
+
+    //Report status as loading.
+    QString status ("Loading ");
+    status.append(fname);
+    LogInfo("%s", status.toStdString().c_str());
+    emit statusMessage(status);
+
+    //Open the file
+    QFile file (fname);
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        QString warning ("Error opening file ");
+        warning.append(fname);
+        LogError("%s", warning.toStdString().c_str());
+        emit warningMessage(warning);
+        return false;
+    }
+
+    //Serializer object for QT classes.
+    QDataStream fileReader(&file);
+    fileReader.setVersion(QDataStream::Qt_4_8);
+    fileReader.setFloatingPointPrecision(QDataStream::
+        SinglePrecision);
+
+    int version = readFileVersion(fileReader, fname);
+    if (version <= 0) return false;
+
+    //Read in the data.
+    //Version 1 assumes pixelSizeX = pixelSizeY.
+    //Version 2 does not make this assumption.
+    if (version == 1)
+    {
+        float pixelSize;
+        fileReader >> _width >> _height >> pixelSize;
+        _pixelSizeX = pixelSize;
+        _pixelSizeY = pixelSize;
+        guessImgType(fname);
+    }
+    else if (version <= 3)
+    {
+        fileReader >> _width >> _height >> _pixelSizeX >> _pixelSizeY;
+        guessImgType(fname);
+    }
+    else
+    {
+        fileReader >> _width >> _height >> _pixelSizeX >> _pixelSizeY >> _imgType;
+        if (_imgType != ImgType_Tip && _imgType != ImgType_Plt)
+        {
+            LogError("Error loading file: %s, unsupported image type: %d", fname.toStdString().c_str(), _imgType);
+            guessImgType(fname);
+        }
+    }
+
+    // read in the data
+    readFileData(fileReader, fname, version, iconOnly);
+    file.close();
+
+    if (iconOnly) return true;
+
+    //Check to see if loaded data is consistent.
+    _dataNull = !isConsistent();
+
+    _fileName = fname;
+
+    return true;
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImage::guessImgType(const QString& fname)
+{
+    _imgType = ImgType_Tip;
+    if (fname.size() <= 0) return;
+    if (fname.at(0) == 'p')
+    {
+        _imgType = ImgType_Plt;
+    }
+}
+
+//=======================================================================
+//=======================================================================
+int RangeImage::getFileVersion(const QString& fname)
+{
+    //Open the file
+    QFile file (fname);
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        LogError("Error opening file: %s", fname.toStdString().c_str());
+        return 0;
+    }
+
+    //Serializer object for QT classes.
+    QDataStream fileReader(&file);
+    fileReader.setVersion(QDataStream::Qt_4_8);
+    fileReader.setFloatingPointPrecision(QDataStream:: SinglePrecision);
+
+    return readFileVersion(fileReader, fname);
+}
+
+//=======================================================================
+//=======================================================================
+bool RangeImage::readFileData(QDataStream &fileReader, const QString& fname, int version, bool iconOnly)
+{
+    if (version == 1 || version == 2)
+    {
+        fileReader >> _depth;
+        fileReader >> _texture;
+        createIcon();
+
+        if (iconOnly) return true;
+
+        fileReader >> _mask;
+        fileReader >> _coordinateSystem;
+        return true;
+    }
+    else if (version >= 3)
+    {
+        fileReader >> _icon;
+        if (iconOnly) return true;
+
+        fileReader >> _depth;
+        fileReader >> _texture;
+        fileReader >> _mask;
+        fileReader >> _coordinateSystem;
+        return true;
+    }
+
+    LogError("Error loading file: %s, unsupported version: %d", fname.toStdString().c_str(), version);
+    return false;
+}
+
+//=======================================================================
+//=======================================================================
+bool RangeImage::createIcon()
+{
+    if (_texture.width() <=  0 || _texture.height() <= 0)
+    {
+        _icon = QImage(); // null image
+        return false;
+    }
+
+    //int w = 150, h = 150;
+    int w = 500, h = 500;
+    _icon = QImage(w, h, QImage::Format_RGB32);
+
+    QPainter p(&_icon);
+    p.setRenderHint(QPainter::Antialiasing, true);
+    p.setRenderHint(QPainter::HighQualityAntialiasing, true);
+    p.setRenderHint(QPainter::SmoothPixmapTransform, true);
+    p.fillRect(0, 0, w, h, Qt::black);
+
+    // compute scale
+    QRectF rcDst;
+    if (_texture.width() > _texture.height())
+    {
+        float scale = (float)_texture.height() / (float)_texture.width();
+        float dstH = scale *(float)_icon.height();
+        float top = ((float)_icon.height() - dstH) / 2.0f;
+        rcDst = QRectF(0, top, _icon.width(), dstH);
+    }
+    else
+    {
+        float scale = (float)_texture.width() / (float)_texture.height();
+        float dstW = scale *(float)_icon.width();
+        float left = ((float)_icon.width() - dstW) / 2.0f;
+        rcDst = QRectF(left, 0, dstW, _icon.height());
+    }
+
+    p.drawImage(rcDst, _texture);
+    return true;
+}
+
+//=======================================================================
+//=======================================================================
+int RangeImage::readFileVersion(QDataStream &fileReader, const QString& fname)
+{
+    //Check fileID and version.
+    QString fileID;
+    fileReader >> fileID;
+    if (QString("Mantis Tip File") != fileID)
+    {
+        LogError("%s : Not a Mantis Tip File.", fname.toStdString().c_str());
+        return 0;
+    }
+
+    qint32 version;
+    fileReader >> fileID; //get rid of the "Version: " string.
+    fileReader >> version;
+    if (version < 1 || version > 4)
+    {
+        LogError("This file is .mt version %d. Only versions 1, 2, 3, 4 are supported.", version);
+        return 0;
+    }
+
+    return version;
+}
+
+//=======================================================================
+//=======================================================================
+bool RangeImage::isConsistent()
 {
 	//Is the data valid?
-	if ((depth.size() != width*height) ||
-		(texture.width() != width) ||
-		(texture.height() != height) ||
-		(mask.size() != width*height))
+    if ((_depth.size() != _width*_height) ||
+        (_texture.width() != _width) ||
+        (_texture.height() != _height) ||
+        (_mask.size() != _width*_height))
 	{
 		QString warning ("Data loaded is invalid.");
 		warning.append(" Width and height");
@@ -176,9 +332,9 @@ RangeImage::isConsistent()
 	}
 	else return true;
 }
-
-bool
-RangeImage::save(const QString& fname) const
+//=======================================================================
+//=======================================================================
+bool RangeImage::save(const QString& fname)
 {
 	//Report status.
 	QString status ("Saving ");
@@ -198,41 +354,47 @@ RangeImage::save(const QString& fname) const
 	//Serializer object for QT classes.
 	QDataStream fileWriter(&file);
 	fileWriter.setVersion(QDataStream::Qt_4_8);
-	fileWriter.setFloatingPointPrecision(QDataStream::
-		SinglePrecision);
+    fileWriter.setFloatingPointPrecision(QDataStream::SinglePrecision);
 
 	//File header.
+    qint32 version = getCurrentFileVersion();
 	fileWriter << QString("Mantis Tip File"); 
-	fileWriter << QString("Version: ") << (qint32) 2; 
-	fileWriter << (qint32) width << 
-		(qint32) height << pixelSizeX << pixelSizeY;
+    fileWriter << QString("Version: ") << version;
+    fileWriter << (qint32) _width << (qint32) _height << _pixelSizeX << _pixelSizeY << (qint32)_imgType;
+
+    // create an icon if we don't have one
+    if (_icon.isNull()) createIcon();
 
 	//File body.
-	fileWriter << depth;
-	fileWriter << texture;
-	fileWriter << mask;
-	fileWriter << coordinateSystem;
+    fileWriter << _icon;
+    fileWriter << _depth;
+    fileWriter << _texture;
+    fileWriter << _mask;
+    fileWriter << _coordinateSystem;
 
 	file.close();
+
+    _fileName = fname;
 
 	return true;
 }
 
-bool
-RangeImage::saveMask(const QString& fname) const
+//=======================================================================
+//=======================================================================
+bool RangeImage::saveMask(const QString& fname) const
 {
-	QImage testMask (width, height, QImage::Format_Indexed8);
-	testMask.setColorCount(2);
+    QImage testMask (_width, _height, QImage::Format_Indexed8);
+    testMask.setColorCount(2);
 	testMask.setColor(0, qRgb(0, 0, 0));
 	testMask.setColor(1, qRgb(255,255, 255));
 	testMask.fill(0); //Start with black.
 
 	//Turn on the appropriate white pixels.
-	for (int i = 0; i < height; ++i)
+    for (int i = 0; i < _height; ++i)
 	{
-		for (int j = 0; j < width; ++j)
+        for (int j = 0; j < _width; ++j)
 		{
-			if (mask.testBit(width*i + j))
+            if (_mask.testBit(_width*i + j))
 			{
 				testMask.setPixel(j, i, 1);
 			}
@@ -242,10 +404,11 @@ RangeImage::saveMask(const QString& fname) const
 	return testMask.save(fname);
 }
 
-bool
-RangeImage::saveDepth(const QString& fname) const
+//=======================================================================
+//=======================================================================
+bool RangeImage::saveDepth(const QString& fname) const
 {
-	QImage graydepth (width, height, QImage::Format_Indexed8);
+    QImage graydepth (_width, _height, QImage::Format_Indexed8);
 	graydepth.setColorCount(256);
 	for (int i = 0; i < 256; ++i)
 		graydepth.setColor(i, qRgb(i, i, i));
@@ -254,11 +417,11 @@ RangeImage::saveDepth(const QString& fname) const
 	//Find the depth range.
 	float minZ = FLT_MAX;
 	float maxZ = -FLT_MAX;
-	for (int i = 0; i < width*height; ++i)
+    for (int i = 0; i < _width*_height; ++i)
 	{
-		if (mask.testBit(i))
+        if (_mask.testBit(i))
 		{
-			float currentZ = depth[i];
+            float currentZ = _depth[i];
 			if (currentZ < minZ)
 				minZ = currentZ;
 			if (currentZ > maxZ)
@@ -267,14 +430,14 @@ RangeImage::saveDepth(const QString& fname) const
 	}
 
 	//Turn on the appropriate white pixels.
-	for (int i = 0; i < height; ++i)
+    for (int i = 0; i < _height; ++i)
 	{
-		for (int j = 0; j < width; ++j)
+        for (int j = 0; j < _width; ++j)
 		{
-			if (mask.testBit(width*i + j))
+            if (_mask.testBit(_width*i + j))
 			{
 				int colorIdx = 
-					floor(255*((depth[width*i + j] - minZ)/(maxZ - minZ)));
+                    floor(255*((_depth[_width*i + j] - minZ)/(maxZ - minZ)));
 				graydepth.setPixel(j, i, colorIdx);
 			}
 		}
@@ -283,26 +446,74 @@ RangeImage::saveDepth(const QString& fname) const
 	return graydepth.save(fname);
 }
 
-const QVector<float>
-RangeImage::getDepth() const
+//=======================================================================
+//=======================================================================
+const QVector<float>& RangeImage::getDepth() const
 {
-	return depth;
+    return _depth;
 }
 
-const QImage
-RangeImage::getTexture() const
+//=======================================================================
+//=======================================================================
+const QImage& RangeImage::getTexture() const
 {
-	return texture;
+    return _texture;
 }
 
-const QBitArray
-RangeImage::getMask() const
+//=======================================================================
+//=======================================================================
+const QBitArray& RangeImage::getMask() const
 {
-	return mask;
+    return _mask;
 }
 
-RangeImage*
-RangeImage::import(const QString& fname, const QString& texfname)
+//=======================================================================
+//=======================================================================
+bool RangeImage::isIconValid() const
+{
+    return !_icon.isNull();
+}
+//=======================================================================
+//=======================================================================
+bool RangeImage::isTextureValid() const
+{
+    if (_texture.width() <= 0) return false;
+    if (_texture.height() <= 0) return false;
+
+    return true;
+}
+
+//=======================================================================
+//=======================================================================
+bool RangeImage::isTip() const
+{
+    return (_imgType == ImgType_Tip);
+}
+
+//=======================================================================
+//=======================================================================
+bool RangeImage::isPlate() const
+{
+    return (_imgType == ImgType_Plt);
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImage::setImgType(EImgType type)
+{
+    _imgType = type;
+}
+
+//=======================================================================
+//=======================================================================
+RangeImage::EImgType RangeImage::getImgType()
+{
+    return (RangeImage::EImgType)_imgType;
+}
+
+//=======================================================================
+//=======================================================================
+RangeImage* RangeImage::import(const QString& fname, const QString& texfname)
 {
 	QFileInfo info (fname);
 	QString suffix = info.suffix();
@@ -323,13 +534,14 @@ RangeImage::import(const QString& fname, const QString& texfname)
 		return importFromTxyz(fname);
 	else
 	{
-		qDebug() << "Unrecognized file format: " << suffix;
+        LogError("Unrecognized file format: %s", suffix.toStdString().c_str());
 		return NULL;
 	}
 }
 
-QScriptValue
-RangeImage::scriptableImport(QScriptContext* context,
+//=======================================================================
+//=======================================================================
+QScriptValue RangeImage::scriptableImport(QScriptContext* context,
 	QScriptEngine* engine)
 {
 	int argc = context->argumentCount();
@@ -358,6 +570,8 @@ RangeImage::scriptableImport(QScriptContext* context,
 	}
 }
 
+//=======================================================================
+//=======================================================================
 RangeImage* RangeImage::importFromTxyz(const QString& fname)
 {
 	//Report status
@@ -368,8 +582,8 @@ RangeImage* RangeImage::importFromTxyz(const QString& fname)
 	//emit statusMessage(status);
 
 	//This is code inspired by Song Zhang's TxyzFileIO class.
-	FILE* fp;
-	fp = fopen(fname.toStdString().c_str(), "rb");
+    FILE* fp = NULL;
+    fopen_s(&fp, fname.toStdString().c_str(), "rb");
 	if (NULL == fp) //If filestream is bad
 	{
 		QString warning ("Error opening file ");
@@ -380,7 +594,7 @@ RangeImage* RangeImage::importFromTxyz(const QString& fname)
 	}
 
 	//Parameters that are needed from the file.
-	int width, height;
+    int width, height;
 	float pixelSize;
 	QVector<float> depth;
 	QImage texture;
@@ -388,7 +602,7 @@ RangeImage* RangeImage::importFromTxyz(const QString& fname)
 	QMatrix4x4 coordinateSystem;
 
 	//Grab size of file and pixel size.
-	fscanf(fp, "image size width x height x pixelSize = %d x %d x %f",
+    fscanf_s(fp, "image size width x height x pixelSize = %d x %d x %f",
 		&width, &height, &pixelSize);
 	int imageSize = width * height;
 
@@ -424,13 +638,12 @@ RangeImage* RangeImage::importFromTxyz(const QString& fname)
 	//Clean up.
 	fclose(fp);
 	
-	return new RangeImage(width, height, pixelSize, pixelSize,
-		depth, texture, mask, coordinateSystem);
+    return new RangeImage(width, height, pixelSize, pixelSize, depth, texture, mask, coordinateSystem);
 }
 
-RangeImage*
-RangeImage::importFromAl3d(const QString& fname, 
-	const QString& texfname)
+//=======================================================================
+//=======================================================================
+RangeImage* RangeImage::importFromAl3d(const QString& fname, const QString& texfname)
 {
 	//Report status.
 	QString status ("Importing ");
@@ -517,12 +730,12 @@ RangeImage::importFromAl3d(const QString& fname,
 		mask = QBitArray(width*height, true);
 
 	//Success
-	return new RangeImage(width, height, pixelSizeX, pixelSizeY,
-		depth, texture, mask, coordinateSystem);
+    return new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, coordinateSystem);
 }
 
-bool
-RangeImage::exportToOBJ(const QString& fname)
+//=======================================================================
+//=======================================================================
+bool RangeImage::exportToOBJ(const QString& fname)
 {
 	//Report status.
 	QString status ("Exporting to obj file ");
@@ -542,10 +755,10 @@ RangeImage::exportToOBJ(const QString& fname)
 	//Do meshing (populate indices).
 	QVector<int> indices;
 	//Go through the spaces between the rows.
-	for (int i = 0; i < height - 1; ++i)
+    for (int i = 0; i < _height - 1; ++i)
 	{
 		//Go through the spaces between the columns.
-		for (int j = 0; j < width - 1; ++j)
+        for (int j = 0; j < _width - 1; ++j)
 		{
 			//Zoom in on a point 0 at i, j and its
 			//neighbor on the right, point 1, its
@@ -554,40 +767,40 @@ RangeImage::exportToOBJ(const QString& fname)
 			//Like this:
 			// 0  1
 			// 2  3
-			int index0 = width*i + j;
+            int index0 = _width*i + j;
 			int index1 = index0 + 1;
-			int index2 = index0 + width;
+            int index2 = index0 + _width;
 			int index3 = index2 + 1;
 
 			//Can I connect point 1 to point 2?
-			if (mask.testBit(index1) & mask.testBit(index2))
+            if (_mask.testBit(index1) & _mask.testBit(index2))
 			{
 				// I use the default / method to divide the 
 				//triangles.
-				if(mask.testBit(index0)) //Can I connect 0 to 1 and 2?
+                if(_mask.testBit(index0)) //Can I connect 0 to 1 and 2?
 				{
 					//If so, I can make a triangle out of them.
 					indices.push_back(index0);
 					indices.push_back(index1);
 					indices.push_back(index2);
 				}
-				if(mask.testBit(index3)) //Can I connect 3 to 1 and 2?
+                if (_mask.testBit(index3)) //Can I connect 3 to 1 and 2?
 				{
 					indices.push_back(index2);
 					indices.push_back(index3);
 					indices.push_back(index1);
 				}
 			}
-			else if (mask.testBit(index0) & mask.testBit(index3)) //Can I connect 0 and 3?
+            else if (_mask.testBit(index0) & _mask.testBit(index3)) //Can I connect 0 and 3?
 			{
 				//I use the \ method the divide the triangles.
-				if(mask.testBit(index1)) //Can I connect 1 to 0 and 3?
+                if(_mask.testBit(index1)) //Can I connect 1 to 0 and 3?
 				{
 					indices.push_back(index1);
 					indices.push_back(index3);
 					indices.push_back(index0);
 				}
-				if(mask.testBit(index2)) //Can I connect 2 to 0 and 3?
+                if(_mask.testBit(index2)) //Can I connect 2 to 0 and 3?
 				{
 					indices.push_back(index2);
 					indices.push_back(index3);
@@ -601,19 +814,19 @@ RangeImage::exportToOBJ(const QString& fname)
 	QTextStream fileWriter(&file);
 	//File body.
 	//vertices and texture coordinates
-	for (int i = 0; i < height; ++i)
+    for (int i = 0; i < _height; ++i)
 	{
-		for (int j = 0; j < width; ++j)
+        for (int j = 0; j < _width; ++j)
 		{
 			fileWriter << "v " 
-				<< j*pixelSizeX << " " 
-				<< i*pixelSizeY << " " 
-				<< depth[width*i + j] << " "
+                << j*_pixelSizeX << " "
+                << i*_pixelSizeY << " "
+                << _depth[_width*i + j] << " "
 				<< "\n";
 			fileWriter << "vt " 
-				<< ((1/((float) width)) * (j + 0.5f)) //s
+                << ((1/((float) _width)) * (j + 0.5f)) //s
 				<< " "
-				<< ((1/((float) height))* (i + 0.5f)) //t
+                << ((1/((float) _height))* (i + 0.5f)) //t
 				<< " \n";
 		}
 	}
@@ -634,66 +847,74 @@ RangeImage::exportToOBJ(const QString& fname)
 	return true;
 }
 
-RangeImage*
-RangeImage::downsample(int skip)
+//=======================================================================
+//=======================================================================
+RangeImage* RangeImage::downsample(int skip)
 {
-	int dWidth = width/skip;
-	int dHeight = height/skip;
+    int dWidth = _width/skip;
+    int dHeight = _height/skip;
 	QVector<float> dDepth;
-	QImage dTexture (dWidth, dHeight, texture.format());
+    QImage dTexture (dWidth, dHeight, _texture.format());
 	QBitArray dMask (dWidth*dHeight, true);
 
 	for (int i = 0; i < dHeight; ++i)
 	{
 		for (int j = 0; j < dWidth; ++j)
 		{
-			int id = width*i*skip + j*skip;
-			dDepth.push_back(depth[id]);
+            int id = _width*i*skip + j*skip;
+            dDepth.push_back(_depth[id]);
 			//slow, but precise and simple
-			dTexture.setPixel(j, i, texture.pixel(j*skip, i*skip));
-			if (!mask.testBit(id)) dMask.clearBit(dWidth*i + j);
+            dTexture.setPixel(j, i, _texture.pixel(j*skip, i*skip));
+            if (!_mask.testBit(id)) dMask.clearBit(dWidth*i + j);
 		}
 	}
 	
-	return new RangeImage(dWidth, dHeight, skip*pixelSizeX,
-		skip*pixelSizeY, dDepth, dTexture, dMask,
-		coordinateSystem);
+    return new RangeImage(dWidth, dHeight, skip*_pixelSizeX, skip*_pixelSizeY, dDepth, dTexture, dMask, _coordinateSystem, getImgType());
 }
 
-Profile*
-RangeImage::getRow(int idx)
+//=======================================================================
+//=======================================================================
+Profile* RangeImage::getRow(int idx)
 {
-	if ((idx < 0) || (idx > height - 1))
+    if ((idx < 0) || (idx > _height - 1))
 		return NULL;
 
 	//Populate depth and mask.
 	QVector<float> row;
-	QBitArray rowMask (width, true);
-	for (int j = 0; j < width; ++j)
+    QBitArray rowMask (_width, true);
+    for (int j = 0; j < _width; ++j)
 	{
-		row.push_back(depth[width*idx + j]);
-		if (!mask.testBit(width*idx + j))
+        row.push_back(_depth[_width*idx + j]);
+        if (!_mask.testBit(_width*idx + j))
 			rowMask.clearBit(j);
 	}
 
-	return new Profile(pixelSizeX, row, rowMask);
+    return new Profile(_pixelSizeX, row, rowMask);
 }
 
-Profile*
-RangeImage::getColumn(int idx)
+//=======================================================================
+//=======================================================================
+Profile* RangeImage::getColumn(int idx)
 {
-	if ((idx < 0) || (idx > width - 1))
+    if ((idx < 0) || (idx > _width - 1))
 		return NULL;
 	
 	//Populate depth and mask.
 	QVector<float> column;
-	QBitArray colMask (height, true);
-	for (int i = 0; i < height; ++i)
+    QBitArray colMask (_height, true);
+    for (int i = 0; i < _height; ++i)
 	{
-		column.push_back(depth[width*i + idx]);
-		if (!mask.testBit(width*i + idx))
+        column.push_back(_depth[_width*i + idx]);
+        if (!_mask.testBit(_width*i + idx))
 			colMask.clearBit(i);
 	}
 
-	return new Profile(pixelSizeY, column, colMask);
+    return new Profile(_pixelSizeY, column, colMask);
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImage::logInfo()
+{
+    LogTrace("RangeImage - width: %d, height: %d, pixelSizeX: %.2f, pixelSizeY: %.2f", _width, _height, _pixelSizeX, _pixelSizeY);
 }

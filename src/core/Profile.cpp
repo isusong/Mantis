@@ -147,8 +147,7 @@ Profile::~Profile()
 
 }
 
-bool
-Profile::isConsistent()
+bool Profile::isConsistent()
 {
 	//Is the data valid?
 	if (depth.size() != mask.size())
@@ -161,20 +160,17 @@ Profile::isConsistent()
 	else return true;
 }
 
-const QVector<float>
-Profile::getDepth() const
+const QVector<float>& Profile::getDepth() const
 {
 	return depth;
 }
 
-const QBitArray
-Profile::getMask() const
+const QBitArray& Profile::getMask() const
 {
 	return mask;
 }
 
-bool
-Profile::save(const QString& fname) const
+bool Profile::save(const QString& fname) const
 {
 	//Report status.
 	QString status ("Saving ");
@@ -225,8 +221,9 @@ Profile::save(const QString& fname) const
 	return true;
 }
 
-Profile*
-Profile::flip()
+//=======================================================================
+//=======================================================================
+Profile* Profile::flip()
 {
 	//If internally inconsistent, we can't flip.
 	if (null) return NULL;

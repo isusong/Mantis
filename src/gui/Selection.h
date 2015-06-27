@@ -61,6 +61,11 @@ class Selection: public QObject
     void setBbMin(const QVector3D &v) { bbMin = v; }
     void setBbMax(const QVector3D &v) { bbMax = v; }
 
+    static void drawSearchBox(float l, float r, float t, float b, float z, float color[4], float linewidth=1);
+
+    static void drawColPlane(float x, float ymin, float ymax, float zmin, float zmax, float color[4], int zmul=1);
+    static void drawRowPlane(float xmin, float xmax, float y, float zmin, float zmax, float color[4], int zmul=1);
+
   public slots:
 	///Update the basis point.
 	void updateSelectionBasis(float x, float y);
@@ -72,7 +77,7 @@ class Selection: public QObject
 	void redrawSelection(float x, float y);
 
 	//Getters and setters.
-	inline QPointF& getBasis() {return basis;}
+    inline QPointF getBasis() {return basis;}
 	inline bool isEnabled() {return enabled;}
 	inline void setEnabled(bool status) {enabled = status;}
 	inline void setDrawMode(drawModes newMode)

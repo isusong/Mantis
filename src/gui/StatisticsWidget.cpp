@@ -34,71 +34,149 @@
 #define RANDOM_DEFAULT 50
 #define MAXSHIFT_DEFAULT 1.00f
 
-StatisticsWidget::StatisticsWidget(QWidget *parent):
+//=======================================================================
+//=======================================================================
+StatisticsWidget::StatisticsWidget(bool showStatPlots, bool autoUpdateRT, QWidget *parent):
 	QWidget(parent)
 {
 	ui.setupUi(this);	
 	statObject = new StatInterface(this);
-	data1 = NULL;
-	data2 = NULL;
+    //data1 = NULL;
+    //data2 = NULL;
 	statObject->setTSampleSize(TSAMPLES_DEFAULT); 
 
 	ui.calculateButton->setEnabled(false);
 	ui.rValue->setEnabled(false);
 	ui.tValue->setEnabled(false);
 	ui.sWindowSpinBox->setValue(SEARCH_DEFAULT); 
-	ui.vWindowSpinBox->setValue(VALID_DEFAULT); 
+    ui.vWindowSpinBox->setValue(VALID_DEFAULT);
 
-	connect(ui.calculateButton, SIGNAL(clicked()),
+    ui.checkBoxShowStatPlots->setChecked(showStatPlots);
+    ui.checkBoxAutoUpdateRT->setChecked(autoUpdateRT);
+    ui.labelMag1->setText(QString("0"));
+    ui.labelMag2->setText(QString("0"));
+    ui.labelZoom1->setText(QString("0.00"));
+    ui.labelZoom2->setText(QString("0.00"));
+
+    bool ret;
+    ret = connect(ui.calculateButton, SIGNAL(clicked()),
 		this, SLOT(compare()));
-	connect(ui.sWindowSpinBox, SIGNAL(valueChanged(int)),
+    ret = connect(ui.sWindowSpinBox, SIGNAL(valueChanged(int)),
 		statObject, SLOT(setSearchWindow(int)));
-	connect(ui.vWindowSpinBox, SIGNAL(valueChanged(int)),
+    ret = connect(ui.vWindowSpinBox, SIGNAL(valueChanged(int)),
 		statObject, SLOT(setValidWindow(int)));
 
 	//Settings dialog stuff
 	settings = new StatisticsSettingsDialog(RIGID_DEFAULT,
 		RANDOM_DEFAULT, MAXSHIFT_DEFAULT, TSAMPLES_DEFAULT, this);
 	settings->hide();
-	connect(settings, SIGNAL(rigidPairsUpdated(int)),
+    ret = connect(settings, SIGNAL(rigidPairsUpdated(int)),
 		statObject, SLOT(setNumRigidPairs(int)));
-	connect(settings, SIGNAL(randomPairsUpdated(int)),
+    ret = connect(settings, SIGNAL(randomPairsUpdated(int)),
 		statObject, SLOT(setNumRandomPairs(int)));
-	connect(settings, SIGNAL(maxShiftUpdated(double)),
+    ret = connect(settings, SIGNAL(maxShiftUpdated(double)),
 		statObject, SLOT(setMaxShiftPercentage(double)));
-	connect(settings, SIGNAL(tSamplesUpdated(int)),
+    ret = connect(settings, SIGNAL(tSamplesUpdated(int)),
 		statObject, SLOT(setTSampleSize(int)));
+
+    // split compare stuff
+    ret = connect(ui.checkBoxShowStatPlots, SIGNAL(clicked()), this, SLOT(onShowStatsPlotClicked()));
+    ret = connect(ui.checkBoxAutoUpdateRT, SIGNAL(clicked()), this, SLOT(onAutoUpdateRTClicked()));
+
+    ret = connect(ui.btnOptGraphResults, SIGNAL(clicked()), this, SLOT(onOptGraphResultsClicked()));
+    setOptHaveResults(false);
 }
 
+//=======================================================================
+//=======================================================================
 StatisticsWidget::~StatisticsWidget()
 {
 	//statObject is parented to this.
 	//settings is parented to this.
 }
 
-void
-StatisticsWidget::updateTValue(QString tValue)
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::setMag1(float mag)
+{
+    ui.labelMag1->setText(QString("%1").arg(mag, 0, 'f', 0));
+}
+
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::setMag2(float mag)
+{
+    ui.labelMag2->setText(QString("%1").arg(mag, 0, 'f', 0));
+}
+
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::setZoom1(float zoom)
+{
+    ui.labelZoom1->setText(QString("%1").arg(zoom, 0, 'f', 0));
+}
+
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::setZoom2(float zoom)
+{
+    ui.labelZoom2->setText(QString("%1").arg(zoom, 0, 'f', 0));
+}
+
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::setOptAng(float ang)
+{
+    ui.labelOptAngle->setText(QString("%1").arg(ang, 0, 'f', 0));
+}
+
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::setOptR(float r)
+{
+    ui.labelOptR->setText(QString::number(r));
+}
+
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::setOptT(float t)
+{
+    ui.labelOptT->setText(QString::number(t));
+}
+
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::setOptHaveResults(bool have)
+{
+    ui.btnOptGraphResults->setEnabled(have);
+}
+
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::updateTValue(QString tValue)
 {
 	ui.tValue->setText(tValue);
 }
 
-void
-StatisticsWidget::updateRValue(QString rValue)
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::updateRValue(QString rValue)
 {
 	ui.rValue->setText(rValue);
 }
 
-void
-StatisticsWidget::setPlotData_1(Profile* data)
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::setPlotData_1(PProfile data)
 {
-	data1 = data;
+    _data1 = data;
 	ui.tValue->setEnabled(false);
 	ui.rValue->setEnabled(false);
 	//Stale search windows.
-	emit searchWindowUpdated_1(0, 0); 
-	emit searchWindowUpdated_2(0, 0); 
+    emit searchWindowUpdated_1(0, 0, 0);
+    emit searchWindowUpdated_2(0, 0, 0);
 
-	if ((NULL == data1) || (NULL == data2))
+    if ((NULL == _data1) || (NULL == _data2))
 	{
 		ui.calculateButton->setEnabled(false);
 	}
@@ -108,17 +186,18 @@ StatisticsWidget::setPlotData_1(Profile* data)
 	}
 }
 
-void
-StatisticsWidget::setPlotData_2(Profile* data)
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::setPlotData_2(PProfile data)
 {
-	data2 = data;
+    _data2 = data;
 	ui.tValue->setEnabled(false);
 	ui.rValue->setEnabled(false);
 	//Stale search windows.
-	emit searchWindowUpdated_1(0, 0); 
-	emit searchWindowUpdated_2(0, 0); 
+    emit searchWindowUpdated_1(0, 0, 0);
+    emit searchWindowUpdated_2(0, 0, 0);
 
-	if ((NULL == data1) || (NULL == data2))
+    if ((NULL == _data1) || (NULL == _data2))
 	{
 		ui.calculateButton->setEnabled(false);
 	}
@@ -128,48 +207,79 @@ StatisticsWidget::setPlotData_2(Profile* data)
 	}
 }
 
-void
-StatisticsWidget::compare()
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::compare()
 {
-	if ((NULL != data1) && (NULL != data2))
-	{
-		try 
-		{
-			statObject->compare(data1, data2);
-		}
-		catch (std::exception err)
-		{
-			reportStatPackageError(err.what());
-			updateTValue("####");
-			updateRValue("####");
 
-			//Stale search windows.
-			emit searchWindowUpdated_1(0, 0); 
-			emit searchWindowUpdated_2(0, 0); 
-			return;
-		}
+    if ((NULL == _data1) || (NULL == _data2)) return;
 
-		//Update GUI with results.
-		updateTValue(QString::number(statObject->getTValue()));
-		updateRValue(QString::number(statObject->getRValue()));
-		ui.tValue->setEnabled(true);
-		ui.rValue->setEnabled(true);
-		emit searchWindowUpdated_1(statObject->getLoc1(), 
-			statObject->getSearchWindow());
-		emit searchWindowUpdated_2(statObject->getLoc2(), 
-			statObject->getSearchWindow());
-	}
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+
+    try
+    {
+        statObject->compare(_data1.get(), _data2.get());
+    }
+    catch (std::exception err)
+    {
+        reportStatPackageError(err.what());
+        updateTValue("####");
+        updateRValue("####");
+
+        //Stale search windows.
+        emit searchWindowUpdated_1(0, 0, 0);
+        emit searchWindowUpdated_2(0, 0, 0);
+
+        QApplication::restoreOverrideCursor();
+        return;
+    }
+
+    //Update GUI with results.
+    updateTValue(QString::number(statObject->getTValue()));
+    updateRValue(QString::number(statObject->getRValue()));
+    ui.tValue->setEnabled(true);
+    ui.rValue->setEnabled(true);
+
+    emit searchWindowUpdated_1(statObject->getLoc1(), statObject->getSearchWindow(), statObject->getDataLen1());
+    emit searchWindowUpdated_2(statObject->getLoc2(), statObject->getSearchWindow(), statObject->getDataLen2());
+
+    QApplication::restoreOverrideCursor();
 }
 
-void
-StatisticsWidget::reportStatPackageError(QString msg)
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::reportStatPackageError(QString msg)
 {
-	QMessageBox::critical(this, tr("Statistical Package Error"), msg);
+    QString outmsg = tr("Stat Error: ");
+    outmsg += msg;
+    QMessageBox::critical(this, tr("Statistical Package Error"), outmsg);
 }
 
-void
-StatisticsWidget::setSettingsVisibility(bool visible)
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::setSettingsVisibility(bool visible)
 {
 	settings->setVisible(visible);
 	settings->setDefaultButtonDefault(false);
+}
+
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::onShowStatsPlotClicked()
+{
+    emit showStatPlots(ui.checkBoxShowStatPlots->isChecked());
+}
+
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::onAutoUpdateRTClicked()
+{
+    emit autoUpdateRT(ui.checkBoxAutoUpdateRT->isChecked());
+}
+
+//=======================================================================
+//=======================================================================
+void StatisticsWidget::onOptGraphResultsClicked()
+{
+    emit showOptGraphResults();
 }

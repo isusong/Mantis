@@ -29,9 +29,9 @@ TipWidget::TipWidget(PRangeImage rangeImage, QWidget *parent):
 	InvestigatorSubWidget(rangeImage, parent)
 {
 	//Create the data objects.
-    tip = new VirtualTip(rangeImage.data(), NULL, this);
+    tip = new VirtualTip(rangeImage.data(), NULL, NULL, this);
 
-	//Create the gui objects.
+    //Create the gui objects.
 	controlsLayout = new QGridLayout(controls);
 	xlabel = new QLabel(tr("x-Axis"), controls);
 	ylabel = new QLabel(tr("y-Axis"), controls);
@@ -105,7 +105,7 @@ TipWidget::assemble()
 	vspacer->resize(0, 0);
 	vspacer->setSizePolicy(QSizePolicy::Maximum, 
 		QSizePolicy::MinimumExpanding);
-	controlsLayout->addWidget(vspacer, 1, 0, 1, -1);
+    controlsLayout->addWidget(vspacer, 1, 0, 1, -1);
 	controls->setLayout(controlsLayout);
 }
 
@@ -114,10 +114,11 @@ TipWidget::mark()
 {
 	emit statusMessage("Marking.  This may take some time....");
 	stalePlots();
-	delete profile;
-	profile = tip->mark(xbox->value(), ybox->value(), zbox->value());
+    //delete profile;
+    Profile *profile = tip->mark(xbox->value(), ybox->value(), zbox->value());
+    _profile.reset(profile);
 	plot->setEnabled(true);
-	plot->setProfile(profile);
+    plot->setProfile(_profile);
 	flipButton->setEnabled(true);
 	emit statusMessage("");
 }

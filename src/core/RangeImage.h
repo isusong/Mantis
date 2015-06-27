@@ -58,37 +58,29 @@ class RangeImage: public QObject
 	Q_PROPERTY(float pixelSizeX READ getPixelSizeX)
 	Q_PROPERTY(float pixelSizeY READ getPixelSizeY)
 
-  protected:
-	//Member variables.
-	bool null;  ///< True if internal data is inconsistent or uninitialized.
+public:
+    enum EImgType
+    {
+        ImgType_Unk = 0,
+        ImgType_Tip = 1,
+        ImgType_Plt = 2,
+    };
 
-	//File members.
-	int width; ///< Width of reconstructed 3D data
-	int height; ///< Height of reconstructed 3D data
-	float pixelSizeX; ///< Pixel size in the width
-	float pixelSizeY; ///< Pixel size in the height
-	///The Z point data in the order @f$ Z_1Z_2Z_3 @f$....
-	QVector<float> depth;
-	///The texture.
-	QImage texture;
-	///The mask point data in the order @f$ M_1M_2M_3 @f$....
-	QBitArray mask;
-	///Matrix defining the object coordinate system.
-	QMatrix4x4 coordinateSystem;
-
-	//Check to make sure the data is consistent.
-	bool isConsistent();
-
-  public:
+public:
 	///Load from .mt file.
-	RangeImage(const QString& fname, QObject *parent = 0);
+    RangeImage(const QString& fname, QObject *parent = 0);
+    RangeImage(const QString& fname, bool iconOnly, QObject *parent = 0);
 	///Load straight from prepared data.
-	RangeImage(int w, int h, float pixX, float pixY, 
-		QVector<float> zdata, QImage tex2D, QBitArray maskdata,
-		QMatrix4x4& csys, QObject* parent = 0);
-	///Copy constructor.
+    RangeImage(int w, int h, float pixX, float pixY, QVector<float> zdata, QImage tex2D, QBitArray maskdata, QMatrix4x4& csys, EImgType imgType = ImgType_Unk, QString fileName="", QObject* parent = 0);
+    ///Copy constructor.
 	RangeImage(const RangeImage& other, QObject *parent = 0);
 	virtual ~RangeImage();
+
+    bool loadFile(const QString& fname, bool iconOnly=false);
+    QString getFileName() const { return _fileName; }
+    void setFileName(const QString &fname) { _fileName = fname; }
+    static int getFileVersion(const QString& fname);
+    static int getCurrentFileVersion() { return 4; }
 
 	//Public static import functions.
 	///Import data from TXYZ, AL3D, or MT
@@ -123,27 +115,35 @@ class RangeImage: public QObject
 	 * @param fname AL3D filename.
 	 * @param texfname Filename of the external texture image.
 	 */
-	static RangeImage* importFromAl3d(const QString& fname, 
-		const QString& texfname = "");
+    static RangeImage* importFromAl3d(const QString& fname, const QString& texfname = "");
 
 	//Getters.
+    ///Get iocn.
+    const QImage& getIcon() const { return _icon; }
 	///Get depth. (Implicitly shared.)
-	const QVector<float> getDepth() const;
+    const QVector<float>& getDepth() const;
 	///Get the texture. (Implicitly shared.)
-	const QImage getTexture() const;
+    const QImage& getTexture() const;
 	///Get the mask. (Implicitly shared.)
-	const QBitArray getMask() const;
+    const QBitArray& getMask() const;
 	///Get the coordinateSystem matrix.
-	inline const QMatrix4x4& getCoordinateSystemMatrix() const
-		{return coordinateSystem;}
+    inline const QMatrix4x4& getCoordinateSystemMatrix() const {return _coordinateSystem;}
 
-  public slots:
+    bool isIconValid() const;
+    bool isTextureValid() const;
+
+    bool isTip() const;
+    bool isPlate() const;
+    void setImgType(EImgType type);
+    EImgType getImgType();
+
+public slots:
 	//Some functions are here so that you can script them.
 	///Save to Mantis Tip File (*.mt).
-	bool save(const QString& fname) const;
+    bool save(const QString& fname);
 	///Export the texture (pass through for QImage save).
 	inline bool exportTexture(const QString& fname)
-		{return texture.save(fname);}
+        {return _texture.save(fname);}
 	///Export to OBJ file format.
 	bool exportToOBJ(const QString& fname);
 	///Downsample by skipping skip rows and columns.
@@ -159,15 +159,15 @@ class RangeImage: public QObject
 	
 	//Getters.
 	///Is the file null?
-	inline bool isNull() const {return null;}
+    inline bool isNull() const {return _dataNull;}
 	///Get 3D data width.
-	inline int getWidth() const {return width;}
+    inline int getWidth() const {return _width;}
 	///Get 3D data height.
-	inline int getHeight() const {return height;}
+    inline int getHeight() const {return _height;}
 	///Get 3D data X pixel size in um.
-	inline float getPixelSizeX() const {return pixelSizeX;}
+    inline float getPixelSizeX() const {return _pixelSizeX;}
 	///Get 3D data Y pixel size in um.
-	inline float getPixelSizeY() const {return pixelSizeY;}
+    inline float getPixelSizeY() const {return _pixelSizeY;}
 
 	//Retrieve cross-sections.
 	///Retrieve a row as a Profile. You are responsible for the pointer.
@@ -181,11 +181,44 @@ class RangeImage: public QObject
 	 */
 	Profile* getColumn(int idx);
 
-  signals:
+    virtual void logInfo();
+
+signals:
 	//Give the GUI a status message.
 	void statusMessage(QString msg);
 	//Alert the GUI to a problem.
 	void warningMessage(QString msg);
+
+protected:
+    static int readFileVersion(QDataStream &fileReader, const QString& fname);
+    bool readFileData(QDataStream &fileReader, const QString& fname, int version, bool iconOnly);
+    void guessImgType(const QString& fname);
+    bool createIcon();
+
+    //Check to make sure the data is consistent.
+    bool isConsistent();
+
+protected:
+  //Member variables.
+  bool _dataNull;  ///< True if internal data is inconsistent or uninitialized.
+
+  //File members.
+  QString _fileName;
+  int _width; ///< Width of reconstructed 3D data
+  int _height; ///< Height of reconstructed 3D data
+  float _pixelSizeX; ///< Pixel size in the width
+  float _pixelSizeY; ///< Pixel size in the height
+  QImage _icon;
+  ///The Z point data in the order @f$ Z_1Z_2Z_3 @f$....
+  QVector<float> _depth;
+  ///The texture.
+  QImage _texture;
+  ///The mask point data in the order @f$ M_1M_2M_3 @f$....
+  QBitArray _mask;
+  ///Matrix defining the object coordinate system.
+  QMatrix4x4 _coordinateSystem;
+
+  int _imgType;
 };
 
 Q_DECLARE_METATYPE(RangeImage*)

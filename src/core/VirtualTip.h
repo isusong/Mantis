@@ -37,6 +37,7 @@
 #include <QScriptValue>
 #include <QScriptContext>
 #include <QScriptEngine>
+#include "IProgress.h"
 
 /**
  * Class for making a virtual mark with a RangeImage object.
@@ -61,59 +62,7 @@ class VirtualTip: public QObject
 	Q_PROPERTY(float resolution READ getResolution WRITE setResolution)
 	Q_PROPERTY(float resDefault READ getDefaultResolution)
 
-  protected:
-	//Tip Variables.
-    RangeImage* tip; ///< Pointer to tip object. Not owned by this object
-	QVector3D bbMin; ///< Tip bounding box min pt.
-	QVector3D bbMax; ///< Tip bounding box max pt.
-	///Cached depth from tip (implicitly shared).
-	QVector<float> depth;
-	///Cached mask from tip (implicitly shared).
-	QBitArray mask;
-
-	//Marking variables.
-	QGLContext* context; ///< The OpenGL context. Not owned by this class.
-	QGLShaderProgram* prog;///< Shader program
-	QMatrix4x4 camera; ///< camera.
-	///Fixed data resolution the virtual mark should have.
-	float resolution;
-	///Default value for resolution. Max pixel size of tip.
-	float resDefault;
-	///Stream buffer for sending lots of vertices to the GPU.
-	StreamBuffer* sbuffer;
-	GLuint fboID; ///< Framebuffer object id.
-	///"Renderbuffer" object id. (Actually, it's now a texture.)
-	GLuint rboID;
-
-	//Protected member functions
-	///Get a persisting OpenGL context for constructing your VirtualTip.
-	/**
-	 * Every tip constructed with this function will get the same pointer.
-	 * This will internally create a pbuffer or a widget that owns the context.
-	 *
-	 * Note: Call destroyOpenGLContext() on application termination to ensure
-	 * that the internal pbuffer or widget is destroyed properly.
-	 */
-	static QGLContext* getOpenGLContext();
-	///Compute the bounding box.
-	void computeBoundingBox();
-	///Determine the correct projection matrix parameters.
-	/**
-	 * This also sets up the "renderbuffer," the texture that
-	 * the depth gets rendered to.
-	 *
-	 * Needs the transformation matrix from mark and pointers for
-	 * rboHeight, partitions, yMin, and yDelta.
-	 */
-	void computeProjection(const QMatrix4x4& transform, int* rboHeight,
-		int* partitions, float* yMin, float* yDelta);
-	///Helper function for making and drawing two triangles.
-	void makeTriangles(float x0, 
-		float y0, float z0, float x1, float y1, float z1);
-	///Draws the tip.
-	void draw();
-
-  public:
+public:
 	///Create a virtual tip from a RangeImage; won't delete the RangeImage*.
 	/**
 	 * newContext is a pointer to the OpenGL context.
@@ -125,13 +74,15 @@ class VirtualTip: public QObject
 	 * context instead.  This allows you to piggyback off of a GUI OpenGL
 	 * widget if you would like. Of course, you own the passed-in newContext.
 	 */
-    VirtualTip(RangeImage* newTip, QGLContext* newContext = NULL, QObject* parent = 0);
+    VirtualTip(RangeImage* newTip, QGLContext* newContext=NULL, IProgress *prog=NULL, QObject* parent=0);
 	virtual ~VirtualTip();
 
 	///Call this at program termination to deallocate persisting context.
 	static void destroyOpenGLContext();
 
-  public slots:
+    int getProgSteps() const { return 4; }
+
+public slots:
 	///Make the mark.
 	/**
 	 * xAxis = rotation about x axis (degrees)
@@ -142,7 +93,7 @@ class VirtualTip: public QObject
 	 *
 	 * This makes a Profile that you are responsible for deleting later.
 	 */
-	Profile* mark(float xAxis, float yAxis, float zAxis);
+    Profile* mark(float xAxis, float yAxis, float zAxis);
 
 	///Wraps creation of Virtual Tip so you get an OpenGL context while scripting.
 	static QScriptValue scriptableCreate(QScriptContext* scriptContext, 
@@ -157,11 +108,72 @@ class VirtualTip: public QObject
 	 */
 	bool setResolution(float newRes);
 	///Return the default resolution of the data (max pix size).
-	inline float getDefaultResolution() {return resDefault;}
+    inline float getDefaultResolution() {return _resDefault;}
 	///Return actual resolution of the data.
-	inline float getResolution() {return resolution;}
+    inline float getResolution() {return _resolution;}
+
+protected:
+    //Protected member functions
+    ///Get a persisting OpenGL context for constructing your VirtualTip.
+    /**
+     * Every tip constructed with this function will get the same pointer.
+     * This will internally create a pbuffer or a widget that owns the context.
+     *
+     * Note: Call destroyOpenGLContext() on application termination to ensure
+     * that the internal pbuffer or widget is destroyed properly.
+     */
+    static QGLContext* getOpenGLContext();
+    ///Compute the bounding box.
+    void computeBoundingBox();
+    ///Determine the correct projection matrix parameters.
+    /**
+     * This also sets up the "renderbuffer," the texture that
+     * the depth gets rendered to.
+     *
+     * Needs the transformation matrix from mark and pointers for
+     * rboHeight, partitions, yMin, and yDelta.
+     */
+    void computeProjection(const QMatrix4x4& transform, int* rboHeight,
+        int* partitions, float* yMin, float* yDelta);
+    ///Helper function for making and drawing two triangles.
+    void makeTriangles(float x0,
+        float y0, float z0, float x1, float y1, float z1);
+    ///Draws the tip.
+    void draw();
+
+    bool progStep(const char *msg=NULL);
+    bool progCancel();
+
+protected:
+    IProgress *_progress;
+
+  //Tip Variables.
+  RangeImage* _tip; ///< Pointer to tip object. Not owned by this object
+  QVector3D _bbMin; ///< Tip bounding box min pt.
+  QVector3D _bbMax; ///< Tip bounding box max pt.
+  ///Cached depth from tip (implicitly shared).
+  QVector<float> _depth;
+  ///Cached mask from tip (implicitly shared).
+  QBitArray _mask;
+
+  //Marking variables.
+  QGLContext* _context; ///< The OpenGL context. Not owned by this class.
+  QGLShaderProgram* _prog;///< Shader program
+  QMatrix4x4 _camera; ///< camera.
+  ///Fixed data resolution the virtual mark should have.
+  float _resolution;
+  ///Default value for resolution. Max pixel size of tip.
+  float _resDefault;
+  ///Stream buffer for sending lots of vertices to the GPU.
+  StreamBuffer* _sbuffer;
+  GLuint _fboID; ///< Framebuffer object id.
+  ///"Renderbuffer" object id. (Actually, it's now a texture.)
+  GLuint _rboID;
+
 };
 
 Q_DECLARE_METATYPE(VirtualTip*)
+
+typedef std::tr1::shared_ptr<VirtualTip> PVirtualTip;
 
 #endif //! defined __VIRTUALTIP_H__

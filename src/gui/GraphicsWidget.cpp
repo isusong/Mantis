@@ -319,9 +319,8 @@ QPointF GraphicsWidget::screenToNDC(const QPoint& point)
 
 //=======================================================================
 //=======================================================================
-void GraphicsWidget::setModel(GenericModel* newModel)
+void GraphicsWidget::setModel(PGenericModel newModel)
 {
-	//QPointer now points to the same thing as newModel.
     _model = newModel;
 
 	//Cache bounding box.

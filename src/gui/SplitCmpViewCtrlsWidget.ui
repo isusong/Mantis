@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>244</width>
-    <height>627</height>
+    <width>261</width>
+    <height>546</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,9 +16,9 @@
   <widget class="QPushButton" name="pushButtonDefaultView">
    <property name="geometry">
     <rect>
-     <x>90</x>
+     <x>150</x>
      <y>10</y>
-     <width>71</width>
+     <width>101</width>
      <height>23</height>
     </rect>
    </property>
@@ -26,26 +26,13 @@
     <string>Default View</string>
    </property>
   </widget>
-  <widget class="QCheckBox" name="checkBoxLinkViews">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>10</y>
-     <width>70</width>
-     <height>17</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Link Views</string>
-   </property>
-  </widget>
   <widget class="QGroupBox" name="groupBoxRotation">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>50</y>
+     <x>20</x>
+     <y>110</y>
      <width>221</width>
-     <height>171</height>
+     <height>201</height>
     </rect>
    </property>
    <property name="title">
@@ -68,7 +55,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>70</y>
+      <y>30</y>
       <width>141</width>
       <height>19</height>
      </rect>
@@ -94,7 +81,7 @@
     <property name="geometry">
      <rect>
       <x>70</x>
-      <y>90</y>
+      <y>50</y>
       <width>21</width>
       <height>16</height>
      </rect>
@@ -103,12 +90,116 @@
      <string>Yaw</string>
     </property>
    </widget>
+   <widget class="QLabel" name="labelRoll">
+    <property name="geometry">
+     <rect>
+      <x>70</x>
+      <y>120</y>
+      <width>21</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Roll</string>
+    </property>
+   </widget>
+   <widget class="QSlider" name="horizontalSliderRoll">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>100</y>
+      <width>141</width>
+      <height>19</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEditYaw">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>170</y>
+      <width>31</width>
+      <height>20</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEditRoll">
+    <property name="geometry">
+     <rect>
+      <x>70</x>
+      <y>170</y>
+      <width>31</width>
+      <height>20</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEditPitch">
+    <property name="geometry">
+     <rect>
+      <x>120</x>
+      <y>170</y>
+      <width>31</width>
+      <height>20</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>150</y>
+      <width>16</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Y</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_2">
+    <property name="geometry">
+     <rect>
+      <x>130</x>
+      <y>150</y>
+      <width>16</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>P</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>80</x>
+      <y>150</y>
+      <width>16</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>R</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
   </widget>
   <widget class="QGroupBox" name="groupBoxPanZoom">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>230</y>
+     <x>20</x>
+     <y>320</y>
      <width>221</width>
      <height>211</height>
     </rect>
@@ -185,9 +276,9 @@
   <widget class="QPushButton" name="pushButtonScreenShot">
    <property name="geometry">
     <rect>
-     <x>170</x>
-     <y>10</y>
-     <width>71</width>
+     <x>150</x>
+     <y>70</y>
+     <width>101</width>
      <height>23</height>
     </rect>
    </property>
@@ -195,175 +286,70 @@
     <string>Screen Shot</string>
    </property>
   </widget>
-  <widget class="QGroupBox" name="groupBoxLighting">
+  <widget class="QLabel" name="labelInfo">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>450</y>
-     <width>221</width>
-     <height>161</height>
+     <y>40</y>
+     <width>81</width>
+     <height>20</height>
     </rect>
    </property>
-   <property name="title">
-    <string>Lighting</string>
+   <property name="text">
+    <string>TextLabel</string>
    </property>
-   <widget class="QLineEdit" name="editLightDirX">
-    <property name="geometry">
-     <rect>
-      <x>80</x>
-      <y>20</y>
-      <width>31</width>
-      <height>20</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="editLightDirY">
-    <property name="geometry">
-     <rect>
-      <x>120</x>
-      <y>20</y>
-      <width>31</width>
-      <height>20</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="editLightDirZ">
-    <property name="geometry">
-     <rect>
-      <x>160</x>
-      <y>20</y>
-      <width>31</width>
-      <height>20</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QLabel" name="labelLightDir">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>20</y>
-      <width>46</width>
-      <height>13</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Direction:</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="labelLightAmb">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>50</y>
-      <width>51</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Ambient:</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="labelLightDif">
-    <property name="geometry">
-     <rect>
-      <x>110</x>
-      <y>50</y>
-      <width>41</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Diffuse:</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="labelLightSpe">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>90</y>
-      <width>46</width>
-      <height>13</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Specular:</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="labelLightShine">
-    <property name="geometry">
-     <rect>
-      <x>110</x>
-      <y>90</y>
-      <width>31</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Shine:</string>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="editLightShine">
-    <property name="geometry">
-     <rect>
-      <x>160</x>
-      <y>90</y>
-      <width>31</width>
-      <height>20</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btnLightAmb">
-    <property name="geometry">
-     <rect>
-      <x>60</x>
-      <y>50</y>
-      <width>31</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btnLightDif">
-    <property name="geometry">
-     <rect>
-      <x>160</x>
-      <y>50</y>
-      <width>31</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btnLightSpe">
-    <property name="geometry">
-     <rect>
-      <x>60</x>
-      <y>90</y>
-      <width>31</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btnLightDefaults">
-    <property name="geometry">
-     <rect>
-      <x>60</x>
-      <y>130</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Defaults</string>
-    </property>
-   </widget>
+  </widget>
+  <widget class="QPushButton" name="pushButtonMark">
+   <property name="geometry">
+    <rect>
+     <x>90</x>
+     <y>40</y>
+     <width>81</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Show Mark</string>
+   </property>
+  </widget>
+  <widget class="QToolButton" name="toolBtnOptimizeMark">
+   <property name="geometry">
+    <rect>
+     <x>180</x>
+     <y>40</y>
+     <width>81</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Optimize</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButtonProfileUpdate">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>70</y>
+     <width>91</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Update Profiles</string>
+   </property>
+  </widget>
+  <widget class="QToolButton" name="toolBtnLinkViews">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>10</y>
+     <width>101</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Link Views</string>
+   </property>
   </widget>
  </widget>
  <resources/>

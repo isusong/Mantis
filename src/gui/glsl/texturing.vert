@@ -29,8 +29,7 @@
 varying vec3 surfaceNormal;
 varying vec4 eyeDistance;
 
-void
-main()
+void main()
 {
 	surfaceNormal = normalize(gl_NormalMatrix * gl_Normal);
 	eyeDistance = gl_ModelViewMatrix * gl_Vertex;

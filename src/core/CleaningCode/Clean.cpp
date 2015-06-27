@@ -32,19 +32,22 @@
 #include "FindValidMarkRange.h"
 #include "ManipulatePlate.h"
 
+//=======================================================================
+//=======================================================================
 Clean::Clean(QObject* parent): QObject(parent)
 {
 }
 
+//=======================================================================
+//=======================================================================
 Clean::~Clean()
 {
 }
 
-//members:
-
-//Returns the maximum color component in the QRgb.
-int
-Clean::maxGray(QRgb color)
+//=======================================================================
+// Returns the maximum color component in the QRgb.
+//=======================================================================
+int Clean::maxGray(QRgb color)
 {
 	int maxRet = qRed(color);	
 	if (qBlue(color) > maxRet)
@@ -54,11 +57,11 @@ Clean::maxGray(QRgb color)
 	return maxRet;
 }
 
-//Threshold based on the quality map and the texture.
-//Does not delete tip pointer.
-QBitArray
-Clean::threshold(RangeImage* tip, const QImage& qualityMap, 
-	int quality_threshold, int texture_threshold)
+//=======================================================================
+// Threshold based on the quality map and the texture.
+// Does not delete tip pointer.
+//=======================================================================
+QBitArray Clean::threshold(RangeImage* tip, const QImage& qualityMap, int quality_threshold, int texture_threshold)
 {
 	//Cache some items from the tip.
 	int width = tip->getWidth();
@@ -94,6 +97,7 @@ Clean::threshold(RangeImage* tip, const QImage& qualityMap,
 	return mask;
 }
 
+//=======================================================================
 //Finds the border of the unmasked regions and chips away at it.
 /*
  * @param lx Number of pixels to be chipped away on left boundary.
@@ -102,9 +106,8 @@ Clean::threshold(RangeImage* tip, const QImage& qualityMap,
  * @param ty Number of pixels to be chipped away on top boundary.
  * @param by Number of pixels to be chipped away on bottom boundary.
  */
-void 
-Clean::removeAdditionalBoundary(unsigned char* maskData, 
-	int imageWidth, int imageHeight, int lx, int rx, int ty, int by)
+//=======================================================================
+void  Clean::removeAdditionalBoundary(unsigned char* maskData, int imageWidth, int imageHeight, int lx, int rx, int ty, int by)
 {
 	// left and right
 	for (int i = 0; i < imageHeight; i++)
@@ -163,12 +166,9 @@ Clean::removeAdditionalBoundary(unsigned char* maskData,
 	}
 }
 
-//slots:
-
-RangeImage*
-Clean::cleanFlatScrewdriverTip(RangeImage* tip, 
-	const QImage& qualityMap, int quality_threshold, 
-	int texture_threshold)
+//=======================================================================
+//=======================================================================
+RangeImage* Clean::cleanFlatScrewdriverTip(RangeImage* tip, const QImage& qualityMap, int quality_threshold, int texture_threshold)
 {
 	//Threshold the tip's mask with texture and quality.
 	QBitArray mask = threshold(tip, qualityMap, 
@@ -180,6 +180,8 @@ Clean::cleanFlatScrewdriverTip(RangeImage* tip,
 	float pixelSizeX = tip->getPixelSizeX();
 	float pixelSizeY = tip->getPixelSizeY();
 	QImage texture = tip->getTexture();
+    RangeImage::EImgType imgType = tip->getImgType();
+
 	//Copy the depth into a mutable vector.
 	QVector<float> depth = QVector<float>(tip->getDepth());
 
@@ -260,18 +262,15 @@ Clean::cleanFlatScrewdriverTip(RangeImage* tip,
 	//Compute coordinate system matrix.
 	//Assume scan at 45 degrees for now.
 	//May change in the future.
-	ComputeFlatScrewdriverTipCsys computeCsys (width, height,
-		pixelSizeX, pixelSizeY, depth, mask);
+    ComputeFlatScrewdriverTipCsys computeCsys (width, height, pixelSizeX, pixelSizeY, depth, mask);
 	QMatrix4x4 csys = computeCsys.getCoordinateSystemMatrix();
 
-	return new RangeImage(width, height, pixelSizeX, pixelSizeY,
-		depth, texture, mask, csys);
+    return new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, csys, imgType);
 }
 
-RangeImage*
-Clean::cleanFlatScrewdriverTip(RangeImage* tip, 
-	QString qualityMapFilename, int quality_threshold,
-	int texture_threshold)
+//=======================================================================
+//=======================================================================
+RangeImage* Clean::cleanFlatScrewdriverTip(RangeImage* tip, QString qualityMapFilename, int quality_threshold, int texture_threshold)
 {
 	QImage qualityMap;
 	if (!qualityMap.load(qualityMapFilename))
@@ -280,8 +279,9 @@ Clean::cleanFlatScrewdriverTip(RangeImage* tip,
 		texture_threshold);
 }
 
-RangeImage* 
-Clean::cleanStriatedLeadMark(RangeImage* plate, const QImage& qualityMap)
+//=======================================================================
+//=======================================================================
+RangeImage* Clean::cleanStriatedLeadMark(RangeImage* plate, const QImage& qualityMap)
 {
 	//Cache some data.
 	int width = plate->getWidth();
@@ -289,6 +289,8 @@ Clean::cleanStriatedLeadMark(RangeImage* plate, const QImage& qualityMap)
 	float pixelSizeX = plate->getPixelSizeX();
 	float pixelSizeY = plate->getPixelSizeY();
 	QImage texture = plate->getTexture();
+    RangeImage::EImgType imgType = plate->getImgType();
+
 	QBitArray mask (plate->getMask()); //Make a copy of the mask.
 	//Make a copy of the coordinate system.
 	QMatrix4x4 coordinateSystem (plate->getCoordinateSystemMatrix());
@@ -421,13 +423,12 @@ Clean::cleanStriatedLeadMark(RangeImage* plate, const QImage& qualityMap)
 	centroid /= mask.count(true);
 	coordinateSystem.translate(-centroid);
 	
-	return new RangeImage(width, height, pixelSizeX, pixelSizeY, 
-		depth, texture, mask, coordinateSystem);
+    return new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, coordinateSystem, imgType);
 }
 
-RangeImage*
-Clean::cleanStriatedLeadMark(RangeImage* plate,
-	QString qualityMapFilename)
+//=======================================================================
+//=======================================================================
+RangeImage* Clean::cleanStriatedLeadMark(RangeImage* plate, QString qualityMapFilename)
 {
 	QImage qualityMap;
 	if (!qualityMap.load(qualityMapFilename))
@@ -436,14 +437,12 @@ Clean::cleanStriatedLeadMark(RangeImage* plate,
 	return cleanStriatedLeadMark(plate, qualityMap);
 }
 
-RangeImage* 
-Clean::cleanSlipJointPliersMark(RangeImage* mark, 
-	const QImage& qualityMap, int quality_threshold,
-	int texture_threshold)
+//=======================================================================
+//=======================================================================
+RangeImage* Clean::cleanSlipJointPliersMark(RangeImage* mark, const QImage& qualityMap, int quality_threshold, int texture_threshold)
 {
 	//Threshold the mark's mask with texture and quality.
-	QBitArray mask = threshold(mark, qualityMap, 
-		quality_threshold, texture_threshold);
+    QBitArray mask = threshold(mark, qualityMap, quality_threshold, texture_threshold);
 
 	//Cache some data.
 	int width = mark->getWidth();
@@ -451,6 +450,8 @@ Clean::cleanSlipJointPliersMark(RangeImage* mark,
 	float pixelSizeX = mark->getPixelSizeX();
 	float pixelSizeY = mark->getPixelSizeY();
 	QImage texture = mark->getTexture();
+    RangeImage::EImgType imgType = mark->getImgType();
+
 	//Make a copy of the coordinate system.
 	QMatrix4x4 coordinateSystem (mark->getCoordinateSystemMatrix());
 	//Copy the depth into a mutable vector.
@@ -509,8 +510,7 @@ Clean::cleanSlipJointPliersMark(RangeImage* mark,
 	filter.FillHolesFloat(depth.data(), ucharMask.data(), 20);
 
 	// eat in additional few points from outside
-	removeAdditionalBoundary(ucharMask.data(), 
-		width, height, 10, 10, 10, 10);
+    removeAdditionalBoundary(ucharMask.data(), width, height, 10, 10, 10, 10);
 
 	//Convert results to QBitArray and make new mark.
 	//If the bit is on in the mask and off in ucharMask,
@@ -550,25 +550,25 @@ Clean::cleanSlipJointPliersMark(RangeImage* mark,
 	centroid /= mask.count(true);
 	coordinateSystem.translate(-centroid);
 
-	return new RangeImage(width, height, pixelSizeX, pixelSizeY,
-		depth, texture, mask, coordinateSystem);
+    return new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, coordinateSystem, imgType);
 }
 
-RangeImage*
-Clean::cleanSlipJointPliersMark(RangeImage* mark, 
-	QString qualityMapFilename, int quality_threshold,
-	int texture_threshold)
+//=======================================================================
+//=======================================================================
+RangeImage* Clean::cleanSlipJointPliersMark(RangeImage* mark, QString qualityMapFilename, int quality_threshold, int texture_threshold)
 {
 	QImage qualityMap;
 	if (!qualityMap.load(qualityMapFilename))
+    {
 		return NULL;
+    }
 	
-	return cleanSlipJointPliersMark(mark, qualityMap,
-		quality_threshold, texture_threshold);
+    return cleanSlipJointPliersMark(mark, qualityMap, quality_threshold, texture_threshold);
 }
 
-RangeImage*
-Clean::detrend(RangeImage* mark)
+//=======================================================================
+//=======================================================================
+RangeImage* Clean::detrend(RangeImage* mark)
 {
 	//Cache some data.
 	int width = mark->getWidth();
@@ -576,6 +576,8 @@ Clean::detrend(RangeImage* mark)
 	float pixelSizeX = mark->getPixelSizeX();
 	float pixelSizeY = mark->getPixelSizeY();
 	QImage texture = mark->getTexture();
+    RangeImage::EImgType imgType = mark->getImgType();
+
 	//Make a copy of the mask.
 	QBitArray mask (mark->getMask());
 	//Make a copy of the coordinate system.
@@ -590,12 +592,12 @@ Clean::detrend(RangeImage* mark)
 	qDebug() << "Removing plane slope....";
 	ManipulatePlate maniPlate(mark, depth.data());
 
-	return new RangeImage(width, height, pixelSizeX, pixelSizeY, 
-		depth, texture, mask, coordinateSystem);
+    return new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, coordinateSystem, imgType);
 }
 
-RangeImage*
-Clean::coordinateSystem2Centroid(RangeImage* mark)
+//=======================================================================
+//=======================================================================
+RangeImage* Clean::coordinateSystem2Centroid(RangeImage* mark)
 {
 	//Cache some data.
 	int width = mark->getWidth();
@@ -603,6 +605,8 @@ Clean::coordinateSystem2Centroid(RangeImage* mark)
 	float pixelSizeX = mark->getPixelSizeX();
 	float pixelSizeY = mark->getPixelSizeY();
 	QImage texture = mark->getTexture();
+    RangeImage::EImgType imgType = mark->getImgType();
+
 	//Make a copy of the mask.
 	QBitArray mask (mark->getMask());
 	//Copy the depth into a mutable vector.
@@ -631,12 +635,12 @@ Clean::coordinateSystem2Centroid(RangeImage* mark)
 	QMatrix4x4 coordinateSystem;
 	coordinateSystem.translate(-centroid);
 	
-	return new RangeImage(width, height, pixelSizeX, pixelSizeY, 
-		depth, texture, mask, coordinateSystem);
+    return new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, coordinateSystem, imgType);
 }
 
-RangeImage*
-Clean::coordinateSystem4Tip(RangeImage* tip)
+//=======================================================================
+//=======================================================================
+RangeImage* Clean::coordinateSystem4Tip(RangeImage* tip)
 {
 	//Cache some data.
 	int width = tip->getWidth();
@@ -646,20 +650,20 @@ Clean::coordinateSystem4Tip(RangeImage* tip)
 	QBitArray mask (tip->getMask());
 	QImage texture = tip->getTexture();
 	QVector<float> depth (tip->getDepth());
+    RangeImage::EImgType imgType = tip->getImgType();
 
 	//Compute coordinate system matrix.
 	//Assume scan at 45 degrees for now.
 	//May change in the future.
-	ComputeFlatScrewdriverTipCsys computeCsys (width, height,
-		pixelSizeX, pixelSizeY, depth, mask);
+    ComputeFlatScrewdriverTipCsys computeCsys (width, height, pixelSizeX, pixelSizeY, depth, mask);
 	QMatrix4x4 csys = computeCsys.getCoordinateSystemMatrix();
 
-	return new RangeImage(width, height, pixelSizeX, pixelSizeY, 
-		depth, texture, mask, csys);
+    return new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, csys, imgType);
 }
 
-RangeImage*
-Clean::connectedComponents(RangeImage* data)
+//=======================================================================
+//=======================================================================
+RangeImage* Clean::connectedComponents(RangeImage* data)
 {
 	//Cache some data.
 	int width = data->getWidth();
@@ -669,6 +673,8 @@ Clean::connectedComponents(RangeImage* data)
 	QImage texture = data->getTexture();
 	QVector<float> depth (data->getDepth());
 	QMatrix4x4 csys (data->getCoordinateSystemMatrix());
+    RangeImage::EImgType imgType = data->getImgType();
+
 	//Make a mutable copy of the mask.
 	QBitArray mask (data->getMask());
 
@@ -703,12 +709,12 @@ Clean::connectedComponents(RangeImage* data)
 		}
 	}
 
-	return new RangeImage(width, height, pixelSizeX, pixelSizeY, 
-		depth, texture, mask, csys);
+    return new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, csys, imgType);
 }
 
-RangeImage*
-Clean::spikeRemovalHoleFilling(RangeImage* tip)
+//=======================================================================
+//=======================================================================
+RangeImage* Clean::spikeRemovalHoleFilling(RangeImage* tip)
 {
 	//Cache some data.
 	int width = tip->getWidth();
@@ -722,6 +728,7 @@ Clean::spikeRemovalHoleFilling(RangeImage* tip)
 	QBitArray mask (tip->getMask());
 	//Copy the coordinate system.
 	QMatrix4x4 csys (tip->getCoordinateSystemMatrix());
+    RangeImage::EImgType imgType = tip->getImgType();
 
 	//Copy the tip mask into an unsigned char array with 255 as "on."
 	QVector<unsigned char> ucharMask;
@@ -778,6 +785,5 @@ Clean::spikeRemovalHoleFilling(RangeImage* tip)
 		}
 	}
 
-	return new RangeImage(width, height, pixelSizeX, pixelSizeY,
-		depth, texture, mask, csys);
+    return new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, csys, imgType);
 }

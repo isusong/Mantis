@@ -47,41 +47,6 @@
 
 class AL3DFile
 {
-	//Private member variables.
-    bool null; ///< Is this a null file?
-	///Stores tags and values
-    QHash<QString, QString> tags;
-	///User-defined comment
-    QString comment;
-	///Size of file.
-    QSize image_size;
-	///Z depth values as @f$ Z_1Z_2Z_3 @f$....
-    float * depth_data;
-	///File Icon
-    QImage icon;
-	///File image planes.
-    QList<QImage> image_planes;
-	///File mask.
-	QBitArray mask;
-	///Pixel Size in X
-	float pixelSizeX;
-	///Pixel Size in Y
-	float pixelSizeY;
-
-	//Private member functions.
-	///Empty the file object of all of its contents.
-    void clear();
-	///Load data from QFile
-    void load(QFile * file);
-	///Read a tag.
-    bool read_tag(QFile * file);
-	///Read in the file icon.
-    bool read_icon(QFile * file);
-	///Read the depth data
-    bool read_depth_data(QFile * file);
-	///Read in one grayscale image plane.
-    bool read_image_plane(QFile * file);
-
   public:
 	///Construct an empty file object.
     AL3DFile();
@@ -99,6 +64,7 @@ class AL3DFile
 
 	///Load filename into the file object.
     void load(const QString& filename);
+    bool loadIconOnly(const QString& filename);
 
 	//Getters and setters
 	///Determine if AL3DFile is valid
@@ -126,6 +92,43 @@ class AL3DFile
 	QImage getIcon();
 	///Get mask. Returns empty QBitArray if there is no depth data or InvalidPixelValue.
 	QBitArray getMask(); //It's ok to pass this around - it's copy on write.
+
+private:
+    //Private member functions.
+    ///Empty the file object of all of its contents.
+    void clear();
+    ///Load data from QFile
+    void load(QFile * file);
+    ///Read a tag.
+    bool read_tag(QFile * file);
+    ///Read in the file icon.
+    bool read_icon(QFile * file);
+    ///Read the depth data
+    bool read_depth_data(QFile * file);
+    ///Read in one grayscale image plane.
+    bool read_image_plane(QFile * file);
+
+private:
+    //Private member variables.
+    bool null; ///< Is this a null file?
+    ///Stores tags and values
+    QHash<QString, QString> tags;
+    ///User-defined comment
+    QString comment;
+    ///Size of file.
+    QSize image_size;
+    ///Z depth values as @f$ Z_1Z_2Z_3 @f$....
+    float * depth_data;
+    ///File Icon
+    QImage icon;
+    ///File image planes.
+    QList<QImage> image_planes;
+    ///File mask.
+    QBitArray mask;
+    ///Pixel Size in X
+    float pixelSizeX;
+    ///Pixel Size in Y
+    float pixelSizeY;
 };
 
 #endif // ! defined __AL3D_FILE_H__

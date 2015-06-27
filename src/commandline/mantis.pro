@@ -49,6 +49,7 @@ win32:LIBS += -lGLU32
 CONFIG += console
 CONFIG += qwt
 
+RC_FILE = ../gui/mantis.rc
 
 HEADERS += \
 	../core/RangeImage.h \
@@ -67,7 +68,6 @@ HEADERS += \
 	../core/VirtualTip.h \
 	../core/StreamBuffer.h \
         ../core/logger.h \
-        ../core/utlqt.h \
 	../QtBoxesDemo/QGLExtensionWrangler/glextensions.h \
 	../core/StatInterface.h \
 	../StatisticsLibrary/io/converttracetoint.h \
@@ -83,7 +83,6 @@ HEADERS += \
 	../StatisticsLibrary/base/corloc.h \
 	../gui/WindowManager.h \
 	../core/View.h \
-	../gui/qwt-plots/statPlot.h \
 	../gui/RangeImageViewer.h \
 	../gui/GraphicsWidget.h \
 	../gui/RangeImageRenderer.h \
@@ -103,7 +102,39 @@ HEADERS += \
     ../gui/QMdiSplitCmpWnd.h \
     ../core/box.h \
     ../core/vector3.h \
-    ../core/basevector.h
+    ../core/basevector.h \
+    ../gui/QMdiSplitCmpWnd2.h \
+    ../gui/GraphicsWidget2.h \
+    ../gui/UtlQtGui.h \
+    ../core/UtlMtFiles.h \
+    ../core/UtlQt.h \
+    ../core/ThreadWorker.h \
+    ../core/ThreadMtFileUpdate.h \
+    ../gui/GuiSettings.h \
+    ../gui/QListWidgetEx.h \
+    ../gui/Mesh.h \
+    ../core/UtlQt3d.h \
+    ../gui/ThreadStatMarkOpt.h \
+    ../core/UtlQtGl.h \
+    ../gui/QProgressDialogEx.h \
+    ../core/IProgress.h \
+    ../gui/DlgMarkOptSettings.h \
+    ../gui/SettingsStore.h \
+    ../gui/qwt-plots/StatScaleDraw.h \
+    ../gui/qwt-plots/StatPlot.h \
+    ../gui/Version.h \
+    ../core/StatResults.h \
+    ../gui/DlgStatResults.h \
+    ../gui/qwt-plots/StatPlotAngT.h \
+    ../gui/DlgLighting.h \
+    ../core/UtlMath.h \
+    ../gui/MaskEditorWidget.h \
+    ../gui/DlgMaskEditorSettings.h \
+    ../gui/DlgCleaning.h \
+    ../gui/QMdiMaskEditor.h \
+    ../gui/DlgClean.h \
+    ../gui/App.h \
+    ../gui/DlgStartUp.h
 
 SOURCES += \
 	../core/RangeImage.cpp \
@@ -122,7 +153,6 @@ SOURCES += \
 	../core/VirtualTip.cpp \
 	../core/StreamBuffer.cpp \
         ../core/logger.cpp \
-        ../core/utlqt.cpp \
 	../QtBoxesDemo/QGLExtensionWrangler/glextensions.cpp \
 	../core/StatInterface.cpp \
 	../StatisticsLibrary/base/FlippableCorLoc.cpp \
@@ -133,7 +163,6 @@ SOURCES += \
 	../StatisticsLibrary/base/ValueLoc.cpp \
 	../gui/WindowManager.cpp \
 	../core/View.cpp \
-	../gui/qwt-plots/statPlot.cpp \
 	../gui/RangeImageViewer.cpp \
 	../gui/GraphicsWidget.cpp \
 	../gui/RangeImageRenderer.cpp \
@@ -150,7 +179,37 @@ SOURCES += \
     ../gui/SplitCmpThumbLoaderWidget.cpp \
     ../gui/SplitCmpViewCtrlsWidget.cpp \
     ../gui/QListWidgetItemEx.cpp \
-    ../gui/QMdiSplitCmpWnd.cpp
+    ../gui/QMdiSplitCmpWnd.cpp \
+    ../gui/QMdiSplitCmpWnd2.cpp \
+    ../gui/GraphicsWidget2.cpp \
+    ../core/UtlMtFiles.cpp \
+    ../core/UtlQt.cpp \
+    ../core/ThreadWorker.cpp \
+    ../core/ThreadMtFileUpdate.cpp \
+    ../gui/QListWidgetEx.cpp \
+    ../gui/Mesh.cpp \
+    ../core/UtlQt3d.cpp \
+    ../gui/ThreadStatMarkOpt.cpp \
+    ../core/UtlQtGl.cpp \
+    ../gui/QProgressDialogEx.cpp \
+    ../core/IProgress.cpp \
+    ../gui/DlgMarkOptSettings.cpp \
+    ../gui/SettingsStore.cpp \
+    ../gui/qwt-plots/StatScaleDraw.cpp \
+    ../gui/qwt-plots/StatPlot.cpp \
+    ../core/StatResults.cpp \
+    ../gui/DlgStatResults.cpp \
+    ../gui/qwt-plots/StatPlotAngT.cpp \
+    ../gui/DlgLighting.cpp \
+    ../core/UtlMath.cpp \
+    ../gui/UtlQtGui.cpp \
+    ../gui/MaskEditorWidget.cpp \
+    ../gui/DlgMaskEditorSettings.cpp \
+    ../gui/DlgCleaning.cpp \
+    ../gui/QMdiMaskEditor.cpp \
+    ../gui/DlgClean.cpp \
+    ../gui/App.cpp \
+    ../gui/DlgStartUp.cpp
 
 RESOURCES += ../core/core.qrc \
 			 ../gui/gui.qrc
@@ -158,7 +217,14 @@ RESOURCES += ../core/core.qrc \
 FORMS += ../gui/StatisticsWidget.ui \
 		 ../gui/StatisticsSettingsDialog.ui \
     ../gui/SplitCmpThumbLoaderWidget.ui \
-    ../gui/SplitCmpViewCtrlsWidget.ui
+    ../gui/SplitCmpViewCtrlsWidget.ui \
+    ../gui/DlgMarkOptSettings.ui \
+    ../gui/DlgStatResults.ui \
+    ../gui/DlgLighting.ui \
+    ../gui/DlgMaskEditorSettings.ui \
+    ../gui/DlgCleaning.ui \
+    ../gui/DlgClean.ui \
+    ../gui/DlgStartUp.ui
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../qwt_Qt481_Release/lib/ -lqwt
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../qwt_Qt481_Debug/lib/ -lqwtd

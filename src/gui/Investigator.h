@@ -38,6 +38,13 @@
 #include "InvestigatorSubWidget.h"
 #include "SplitCmpViewCtrlsWidget.h"
 #include "SplitCmpThumbLoaderWidget.h"
+#include "QMdiSplitCmpWnd2.h"
+#include "ThreadStatMarkOpt.h"
+#include "SettingsStore.h"
+#include "../core/StatResults.h"
+#include "DlgStatResults.h"
+
+#include "QMdiMaskEditor.h"
 
 class Investigator: public QMainWindow
 {
@@ -47,36 +54,88 @@ public:
     Investigator(QWidget* parent = 0);
     virtual ~Investigator();
 
-    QMdiSplitCmpWnd* getTopSplitCmp();
+    QMdiSplitCmpWnd2* getTopSplitCmp();
+    QMdiMaskEditor* getTopMaskEditor();
     QMdiArea* getMdiArea() { return _area; }
+    SplitCmpViewCtrlsWidget* getSplitCmpCtrls() { return _splitCmpViewCtrls; }
+
+    bool autoUpdateStatsRT();
+
+    void runMarkOptimization(RangeImageRenderer *tipModel, PProfile plateProfile);
 
 public slots:
+    void slotActivateLightingSettings();
+    void slotToggleShowStartupDlg();
+
     void showSplitComparison();
 	void openTip();
 	void openPlate();
+    void openMaskEditor();
+    void importTip();
+    void importPlate();
+    void updateMtFiles();
 	void assignSlot(InvestigatorSubWidget* window); 
 	void updateEnabledStatus(); ///< Enable/Disable actions.
 	void emptySlot_1(); ///< Update slot 1 to empty status.
 	void emptySlot_2(); ///< Update slot 2 to empty status.
 	void postStatusMessage(QString msg);
 	void activateStatSettings();
-    void slotSplitItemClicked(QListWidgetItem * item);
+
+    void slotSplitCmpContextMenuThumbLoader(const QPoint &pos);
+    void slotSetSplitCmpProjFolder();
+    void slotSplitItemClicked(QListWidgetItem *item);
     void slotSplitCmpWndClosed();
+    void slotSplitCmpProfileUpdated(PProfile p1, PProfile p2);
+    void slotSplitCmpUpdateStatsRT();
+    void slotToggleShowStatPlotsAction();
+    void slotToggleAutoUpdateStatsRTAction();
+    void slotShowStatPlots(bool show);
+    void slotAutoUpdateStatsRT(bool update);
+    void slotSplitCmpUpdateMark();
+    void slotSplitWindowSelChange();
+    void slotShowOptGraphResults();
+
+    void slotShowMaskEditor();
+
+    void slotZoomUpdated(int viewer, double zoom);
+    void slotChangedTranslationMouse(int viewer, const QVector3D &v);
+    void slotOnDefaultView();
+
+    void slotOnSubWndActivated(QMdiSubWindow *wnd);
+
 
 protected:
     virtual void keyPressEvent(QKeyEvent* event);
     virtual void closeEvent(QCloseEvent *closeEvent);
-    void saveDocStates(QDockWidget *doc);
-    void loadDocStates(QDockWidget *doc);
+    virtual void showEvent(QShowEvent *event);
+    //void saveDocStates(QDockWidget *doc);
+    //void loadDocStates(QDockWidget *doc);
     void initStyles();
     void makeConnections();
     void assemble();
     void createSplitCompareDockWindows();
+    bool pickSplitCmpProjFolder(QString *pfolder=NULL);
+    bool setSplitCmpProjFolder(const QString &folder);
     unsigned int getCurrentWindows(std::vector<InvestigatorSubWidget*> *pv);
+
+    void refreshThumbLoaderSelection();
+    void refreshMagAndZoom();
+
+    void loadMaskEditor(PRangeImage img);
 
 protected:
     //Data Objects.
+    /*
     QString _lastDirectory; ///< Stores last directory of navigation.
+    bool _lastDirSet;
+    bool _autoUpdateStatsRT;
+    bool _showStatPlots;
+    */
+
+
+    //SettingsStore::InvSettings _settings;
+
+
     QFileInfo _fileInfo;
     bool _slotFilled_1; ///< Is the first window slot filled?
     bool _slotFilled_2; ///< Is the second window slot filled?
@@ -89,18 +148,35 @@ protected:
     QMenu* _fileMenu;
     QAction* _openTipAction;
     QAction* _openPlateAction;
+    QAction* _openMaskEditorAction;
+    QAction* _importTipAction;
+    QAction* _importPlateAction;
+    QAction* _updateMtFiles;
     QMenu* _viewMenu;
+    QAction* _actionViewLigthing;
+    QAction *_actionViewShowStartupDlg;
     QMenu* _toolsMenu;
     QAction* _tileAction;
     QAction* _cascadeAction;
     QAction* _statSettingsAction;
+    QAction* _setProjectFolderAction;
     QAction* _showSplitCompareAction;
+    QAction* _showMaskEditorAction;
+    QAction* _showStatPlotsAction;
+    QAction* _autoUpdateStatsRTAction;
 
     QDockWidget* _dockCmpViewCtrls;
     SplitCmpViewCtrlsWidget* _splitCmpViewCtrls;
 
     QDockWidget* _dockCmpThumbLoader;
     SplitCmpThumbLoaderWidget* _splitCmpThumbLoader;
+
+    QWidget* _win1;
+    QWidget* _win2;
+    QWidget* _winSplit;
+
+    DlgStatResults *_dlgStatResults;
+    PStatResults _statOptResults;
 };
 
 #endif //!defined __INVESTIGATOR_H__

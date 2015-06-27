@@ -67,7 +67,7 @@ class Profile: public QObject
 	///Load from .csv file.
 	Profile(const QString& fname, QObject *parent = 0);
 	///Load straight from prepared data.
-	Profile(float pix, QVector<float> zdata, QBitArray maskdata, 
+    Profile(float pix, QVector<float> zdata, QBitArray maskdata,
 		QObject* parent = 0);
 	///Copy constructor.
 	Profile(const Profile& other, QObject* parent = 0);
@@ -75,9 +75,9 @@ class Profile: public QObject
 
 	//Getters.
 	///Get depth. (Implicitly shared.)
-	const QVector<float> getDepth() const;
+    const QVector<float>& getDepth() const;
 	///Get the mask. (Implicitly shared.)
-	const QBitArray getMask() const;
+    const QBitArray& getMask() const;
 
   public slots:
 	//Some functions are here so that you can script them.
@@ -94,5 +94,7 @@ class Profile: public QObject
 };
 
 Q_DECLARE_METATYPE(Profile*)
+
+typedef std::tr1::shared_ptr<Profile> PProfile;
 
 #endif //!defined __PROFILE_H__

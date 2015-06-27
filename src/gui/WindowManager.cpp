@@ -24,17 +24,21 @@
  */
 
 #include "WindowManager.h"
-#include "qwt-plots/statPlot.h"
+#include "qwt-plots/StatPlot.h"
 #include <exception>
 #include "RangeImageViewer.h"
 #include "Investigator.h"
 
+//=======================================================================
+//=======================================================================
 WindowManager::WindowManager(QObject* parent):
 	QObject(parent)
 {
 
 }
 
+//=======================================================================
+//=======================================================================
 WindowManager::~WindowManager()
 {
 	//Laura: It seems that QT is doing the cleanup,
@@ -49,8 +53,9 @@ WindowManager::~WindowManager()
 	//}
 }
 
-QObject*
-WindowManager::getWindowByName(const QString& name)
+//=======================================================================
+//=======================================================================
+QObject* WindowManager::getWindowByName(const QString& name)
 {
 	if (hashMap.contains(name))
 		return hashMap.value(name);
@@ -58,14 +63,14 @@ WindowManager::getWindowByName(const QString& name)
 		return NULL;
 }
 
-
-QString
-WindowManager::getProfilePlot(const QString& name,
-	Profile* profile, const QString& penColor, bool mask,
+//=======================================================================
+//=======================================================================
+QString WindowManager::getProfilePlot(const QString& name,
+    PProfile profile, const QString& penColor, bool mask,
 	int width, int height)
 {
 	//Set up the window.
-	statPlot* plot = new statPlot();
+    StatPlot* plot = new StatPlot();
 	plot->setProfile(profile, mask);
 	QColor color;
 	color.setNamedColor(penColor);
@@ -91,8 +96,9 @@ WindowManager::getProfilePlot(const QString& name,
 	return name;
 }
 
-void
-WindowManager::addSearchWindow(const QString& name, int location,
+//=======================================================================
+//=======================================================================
+void WindowManager::addSearchWindow(const QString& name, int location,
 	int width)
 {
 	if (hashMap.contains(name))
@@ -100,16 +106,20 @@ WindowManager::addSearchWindow(const QString& name, int location,
 		QObject* window = hashMap.value(name);
 		try
 		{
-			statPlot* statwindow = dynamic_cast<statPlot*>(window);
+            StatPlot* statwindow = dynamic_cast<StatPlot*>(window);
 			if (NULL != statwindow)
 				statwindow->setSearchWindow(location, width);
 		}
-		catch (std::exception& e) {};
+        catch (std::exception& e)
+        {
+            Q_UNUSED(e);
+        };
 	}
 }
 
-QString
-WindowManager::getRangeImageWindow(const QString& name,
+//=======================================================================
+//=======================================================================
+QString WindowManager::getRangeImageWindow(const QString& name,
     PRangeImage rangeImage, int flatDimension,
 	int width, int height)
 {
@@ -135,8 +145,9 @@ WindowManager::getRangeImageWindow(const QString& name,
 	return name;
 }
 
-QString
-WindowManager::getInvestigatorGUI(const QString& name)
+//=======================================================================
+//=======================================================================
+QString WindowManager::getInvestigatorGUI(const QString& name)
 {
 	Investigator* gui = new Investigator();
 	gui->setAttribute(Qt::WA_DeleteOnClose);
@@ -159,16 +170,18 @@ WindowManager::getInvestigatorGUI(const QString& name)
 	return name;
 }
 
-QString
-WindowManager::deleteWindow(const QString& name)
+//=======================================================================
+//=======================================================================
+QString WindowManager::deleteWindow(const QString& name)
 {
 	delete hashMap.value(name);
 	hashMap.remove(name);
 	return name;
 }
 
-void
-WindowManager::deleteWindowEntry(QObject* obj)
+//=======================================================================
+//=======================================================================
+void WindowManager::deleteWindowEntry(QObject* obj)
 {
 	//FIXME: Does the name actually persist this far?
 	hashMap.remove(obj->objectName());

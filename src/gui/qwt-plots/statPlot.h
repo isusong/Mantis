@@ -34,7 +34,9 @@
 #include <QtCore/QPointF>
 #include <QtCore/QVector>
 #include <QtGui/QPen>
+#include "StatScaleDraw.h"
 #include "../core/Profile.h"
+#include <memory>
 
 /**
  * Provides a plot of a profile and its 
@@ -45,21 +47,28 @@
  * @author Laura Ekstrand
  */
 
-class statPlot: public QwtPlot
+class StatPlot: public QwtPlot
 {
 	Q_OBJECT
 
-	QwtPlotCurve* profileCurve;
-	QPen curvePen;
-	QwtPlotCurve* searchWindow;
-	QwtPlotGrid* gridLines;
-
 	public:
-		statPlot(QWidget *parent = 0);
-		virtual ~statPlot();
+        StatPlot(QWidget *parent = 0);
+        StatPlot(const QSize &szHint, const QSize &szHintMin, QWidget *parent = 0);
+        virtual ~StatPlot();
+
+        virtual QSize sizeHint() const;
+        virtual QSize minimumSizeHint() const;
 	
+        void setProfilePen(const QColor &penColor);
+        void setSearchPen(const QColor &penColor);
+
+        void setAxisTextX(const QString &text);
+        void setAxisColor(const QColor &c);
+        void setAxisColorX(const QColor &c);
+        void setAxisColorY(const QColor &c);
+
 	public slots:
-		void setProfileCurve(const QVector<QPointF>& profilePts);
+        void setProfileCurve(const QVector<QPointF>& profilePts);
 		///Display Profile. mask indicates whether to mask data.
 		/**
 		 * Note: If masked = true, the masked-out points simply
@@ -67,12 +76,28 @@ class statPlot: public QwtPlot
 		 * instead of seeing a gap there, you will get interpolation
 		 * between the two nearest "on" points.
 		 */
-		void setProfile(Profile* profile, bool masked = true);
+        void setProfile(PProfile profile, bool masked = true);
 		void setSearchWindow(int searchLoc, int searchWidth);
-		void setProfilePen(QColor penColor);
-	
+
 	signals:
 		///Announce that the profile has changed.
-		void profileChanged(Profile* profile, bool masked);
+        void profileChanged(PProfile profile, bool masked);
+
+    protected:
+        void init();
+        void setAxisColor(int axis, const QColor &c);
+
+    protected:
+        bool _overrideSizeHints;
+        QSize _szHint;
+        QSize _szHintMin;
+        StatScaleDraw *_scaleDrawX;
+
+        std::tr1::shared_ptr<QwtPlotCurve> _profileCurve;
+        QPen _curvePen;
+        std::tr1::shared_ptr<QwtPlotCurve> _searchWindow;
+        QPen _searchPen;
+        std::tr1::shared_ptr<QwtPlotGrid> _gridLines;
+
 };
 #endif // ! defined __STATPLOT_H__

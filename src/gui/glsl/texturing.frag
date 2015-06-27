@@ -32,7 +32,7 @@ vec3 lighting(vec3, vec3, vec3);
 
 void
 main()
-{
+{    
 	//Surface properties
 	//float shine = 5.0f;
 	vec3 texture = vec3(texture2D(modelTexture,

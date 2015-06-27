@@ -26,9 +26,12 @@
 #include "SplitCmpThumbLoaderWidget.h"
 #include "ui_SplitCmpThumbLoaderWidget.h"
 #include <QDir>
+#include <QMouseEvent>
 #include "../core/logger.h"
-#include "../core/utlqt.h"
+#include "../core/utlmtfiles.h"
+#include "../core/RangeImage.h"
 #include "QListWidgetItemEx.h"
+#include "GuiSettings.h"
 
 //=======================================================================
 //=======================================================================
@@ -48,6 +51,8 @@ SplitCmpThumbLoaderWidget::SplitCmpThumbLoaderWidget(QWidget *parent) :
 
     ui->listWidgetThumbs->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     ui->listWidgetThumbs->setMinimumSize(900, 200);
+
+    setContextMenuPolicy(Qt::CustomContextMenu);
 }
 
 //=======================================================================
@@ -68,9 +73,10 @@ QListWidget* SplitCmpThumbLoaderWidget::getListWidgetThumbs()
 //=======================================================================
 bool SplitCmpThumbLoaderWidget::setProjectFolder(const QString &dirPath)
 {
-    FileItemList fileItems;
+    UtlMtFiles::FileItemList fileItems;
 
-    findFiles(dirPath, &fileItems);
+    LogTrace("Attempting to set splitcmp project folder to: %s", dirPath.toStdString().c_str());
+    UtlMtFiles::findFiles(dirPath, &fileItems);
 
     if (!fileItems.size())
     {
@@ -83,85 +89,35 @@ bool SplitCmpThumbLoaderWidget::setProjectFolder(const QString &dirPath)
 
     for (unsigned int i=0; i<fileItems.size(); i++)
     {
-        PFileItem item = fileItems[i];
-        QListWidgetItem *listItem = new QListWidgetItemEx(QIcon(item->fullPathIcon), item->folderName, item->fullPathMt);
-        //listItem->setData(Qt::UserRole + 1, QVariant(item->fullPathMt));
+        UtlMtFiles::PFileItem item = fileItems[i];
+
+        // load the icon
+        QListWidgetItem *listItem = NULL;
+        RangeImage ri(item->fullPathMt, true);
+        if (ri.isIconValid())
+        {
+            QImage icon = ri.getIcon();
+            QPixmap pmap = QPixmap::fromImage(icon);
+            QString ssfile("D:/dev/mantis_dev/mantis/data/test/");
+            ssfile += item->fileName;
+            ssfile += ".png";
+
+
+            ri.getIcon().save(ssfile);
+            listItem = new QListWidgetItemEx(QIcon(pmap), item->fileName, item->fullPathMt);
+        }
+        else
+        {
+            listItem = new QListWidgetItemEx(QIcon(":/general/Icons/questionmark.png"), item->fileName, item->fullPathMt);
+        }
+
+
+        listItem->setBackgroundColor(GuiSettings::colorListWidgetBg());
         ui->listWidgetThumbs->addItem(listItem);
     }
 
 
     return true;
-}
-
-//=======================================================================
-//=======================================================================
-void SplitCmpThumbLoaderWidget::findFiles(const QString &dirPath, FileItemList *plist)
-{
-    QDir dir(dirPath);
-    QStringList iconFiles = dir.entryList(QStringList("icon.png"));
-    QStringList mtFiles = dir.entryList(QStringList("*.mt"));
-
-    // validate, should be a single icon.png and singe .mt file in each project folder
-    if (iconFiles.size() > 1)
-    {
-       LogTrace("UnExpected: multiple icon.png files found in folder: %s", dirPath.toStdString().c_str());
-    }
-
-    if (mtFiles.size() > 1)
-    {
-        LogTrace("UnExpected: multiple mt files found in folder: %s", dirPath.toStdString().c_str());
-    }
-
-    if (mtFiles.size() > 0 && iconFiles.size() <= 0)
-    {
-        LogTrace("UnExpected: no icon.png found in folder: %s", dirPath.toStdString().c_str());
-    }
-
-    if (mtFiles.size() > 0)
-    {
-        // should only be a single project file, but add them all anyway
-        for (int i=0; i<mtFiles.size(); i++)
-        {
-            PFileItem item(new FileItem);
-            item->folderName = dir.dirName();
-            item->fullPathMt = UtlQt::pathCombine(dir.absolutePath(), mtFiles[i]);
-            if (iconFiles.size())
-            {
-                item->fullPathIcon = UtlQt::pathCombine(dir.absolutePath(), iconFiles[0]);
-            }
-            else
-            {
-                item->fullPathIcon = ":/general/Icons/questionmark.png";
-            }
-
-            plist->push_back(item);
-        }
-    }
-
-
-
-    QString curDir = QDir::cleanPath(dirPath);
-
-    // find any sub directories and recurse
-    QFileInfoList subDirs = dir.entryInfoList(QDir::AllDirs);
-    for (int i=0; i<subDirs.size(); i++)
-    {
-        if (!subDirs[i].isDir()) continue;
-
-        QString name = subDirs[i].fileName();
-        if (name == "." || name == "..")
-        {
-            continue;
-        }
-
-        QString subDir = subDirs[i].absoluteFilePath();
-        if (QDir::cleanPath(subDir) == curDir)
-        {
-            continue;
-        }
-
-        findFiles(subDir, plist);
-    }
 }
 
 

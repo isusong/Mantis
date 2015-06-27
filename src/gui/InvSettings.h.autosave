@@ -1,0 +1,17 @@
+#ifndef INVSETTINGS_H
+#define INVSETTINGS_H
+
+#include
+class InvSettings
+{
+public:
+    InvSettings();
+
+    static void saveInvestigator(Investigator *inv);
+    static void loadInvestigator(Investigator *inv);
+
+    static void saveDocStates(QDockWidget *doc);
+    static void loadDocStates(QDockWidget *doc);
+};
+
+#endif // INVSETTINGS_H

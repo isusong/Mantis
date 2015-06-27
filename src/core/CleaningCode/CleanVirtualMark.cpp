@@ -150,8 +150,8 @@ CleanVirtualMark::findMarkEdges(const QVector<float> data)
 		//never found, return original start and end points.
 		if (!startFound || !endFound) //something's wrong
 		{
-			int startIndex = oldStartIndex;
-			int endIndex = oldEndIndex;
+            startIndex = oldStartIndex;
+            endIndex = oldEndIndex;
 			break; //don't repeat.
 		}
 

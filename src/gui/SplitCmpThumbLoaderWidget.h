@@ -11,7 +11,7 @@ class SplitCmpThumbLoaderWidget;
 class SplitCmpThumbLoaderWidget : public QWidget
 {
     Q_OBJECT
-    
+
 public:
     explicit SplitCmpThumbLoaderWidget(QWidget *parent = 0);
     ~SplitCmpThumbLoaderWidget();
@@ -20,18 +20,10 @@ public:
 
     QListWidget* getListWidgetThumbs();
 
-protected:
-    struct FileItem
-    {
-        QString folderName;
-        QString fullPathIcon;
-        QString fullPathMt;
-    };
-    typedef QSharedPointer<FileItem> PFileItem;
-    typedef std::vector<PFileItem> FileItemList;
+public slots:
 
+signals:
 
-    void findFiles(const QString &dirPath, FileItemList *plist);
 
 private:
     Ui::SplitCmpThumbLoaderWidget *ui;

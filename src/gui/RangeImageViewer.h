@@ -27,7 +27,7 @@
 #define __RANGEIMAGEVIEWER_H__
 #include <QWidget>
 #include <QGridLayout>
-#include "GraphicsWidget.h"
+#include "GraphicsWidget2.h"
 #include "RangeImageRenderer.h"
 #include <QToolBar>
 #include <QActionGroup>
@@ -52,16 +52,20 @@ class RangeImageViewer: public QWidget
 	 * If no dimensions are flat, pass in -1 or a value that is not
 	 * 0, 1, or 2.
 	 */
-    RangeImageViewer(PRangeImage rangeImage, bool useViewTools=true, int flatDimension = -1,
+    RangeImageViewer(PRangeImage rangeImage, bool useSplitMode=false, bool useViewTools=true, int flatDimension = -1,
 		int w = 500, int h = 500, QWidget* parent = 0);
 	virtual ~RangeImageViewer();
 
-    void setModel(PRangeImage ri);
+    void setModel(PRangeImage ri, int viewer=0, bool isTip=false);
     void setWindowSelected(bool sel);
     bool getIsWindowSelected();
 
-    GraphicsWidget* getGraphicsWidget() { return _graphics; }
-    RangeImageRenderer* getRenderer() { return _renderer; }
+    GraphicsWidget2* getGraphicsWidget() { return _graphics; }
+    RangeImageRenderer* getRenderer(int num=0);
+
+    void setSliderPos(float per = .5f);
+
+    virtual void resizeEvent(QResizeEvent *event);
 
   public slots:
 	///Change the background color for the render.
@@ -84,7 +88,7 @@ class RangeImageViewer: public QWidget
 	 */
 	void rotate(float xAxis, float yAxis, float zAxis);
 	//Pass throughs for Selection object.
-    inline QPointF& getBasis() {return _renderer->getBasis();}
+    inline QPointF getBasis() {return _renderer->getBasis();}
 	///Use with double clicked signal. Schedules an "unprojection."
 	inline void updateSelection(int winX, int winY)
         {_renderer->scheduleSelectionUpdate(winX, winY);}
@@ -98,12 +102,17 @@ class RangeImageViewer: public QWidget
 	inline void setSelectionMultiplier(int mult)
         {_renderer->setSelectionMultiplier(mult);}
 
-    void onLButtonDownGraphicsSlot(int x, int y);
+    void slotLButtonDownGraphics(int x, int y);
+
+    void slotCmpSliderChanged(int value);
+    void slotSplitterMoved(int x,int y);
+    void slotCmpSliderReleased();
 
   signals:
 	///Coordinates where user clicked on 3D window.
 	void doubleClicked(int x, int y);
     void onLButtonDown(int x, int y);
+    void onCmpSliderReleased();
 
 protected:
     void initActions();
@@ -117,9 +126,11 @@ protected:
     int _width;
     int _height;
     QGridLayout* _mainGrid;
-    GraphicsWidget* _graphics;
-    RangeImageRenderer* _renderer;
+    GraphicsWidget2* _graphics;
+    PGenericModel _renderer;
+    PGenericModel _renderer2;
     QToolBar* _viewTools;
+    QSlider* _cmpSlider;
 
     //Shading modes group
     QActionGroup* _actionGroup;

@@ -37,6 +37,7 @@ uniform float lightShi = 5.0;
 vec3 lighting(vec3 ambient, vec3 diffuse, vec3 specular, float shine)
 {
 	vec3 normal = normalize(surfaceNormal);
+    //return normal;
 
 	//Diffuse reflection.
 	float lambert = max(dot(normalize(lightOrigin), normal), 0);

@@ -23,75 +23,165 @@
  * Author: Laura Ekstrand (ldmil@iastate.edu)
  */
 
-#include "statPlot.h"
+#include "StatPlot.h"
 #include <qwt_plot_canvas.h>
 #include <qwt_plot_panner.h>
 #include <qwt_plot_magnifier.h>
+#include <qwt_scale_widget.h>
+#include <QPalette>
 
 #define LINEWIDTH 2
 
-statPlot::statPlot(QWidget* parent):
-	QwtPlot(parent)
+//=======================================================================
+//=======================================================================
+StatPlot::StatPlot(QWidget* parent) : QwtPlot(parent),
+    _overrideSizeHints(false)
 {
-	//Plot-wide settings.
-	//Init panning and magnifying.
-    (void) new QwtPlotPanner( canvas() ); //Inherits from QWidget.
-    (void) new QwtPlotMagnifier( canvas() ); //Inherits from QObject.
-	//Style the plot box
+    init();
+}
+
+//=======================================================================
+//=======================================================================
+StatPlot::StatPlot(const QSize &szHint, const QSize &szHintMin, QWidget *parent) : QwtPlot(parent),
+    _overrideSizeHints(true),
+    _szHint(szHint),
+    _szHintMin(szHintMin)
+{
+    init();
+}
+
+//=======================================================================
+//=======================================================================
+StatPlot::~StatPlot()
+{
+}
+
+//=======================================================================
+//=======================================================================
+void StatPlot::init()
+{
+    /*
+    QSize cshint = canvas()->sizeHint();
+    QSize csize = canvas()->size();
+    QSize cmsizehint = canvas()->minimumSizeHint();
+    QSize cminsize = canvas()->minimumSize();
+    canvas()->setMinimumSize(cminsize.width() * .5, cminsize.height() *.5);
+    canvas()->resize(cminsize.width() * .5, cminsize.height() *.5);
+
+
+    QSize shint = this->sizeHint();
+    QSize size = this->size();
+    QSize msizehint = this->minimumSizeHint();
+    QSize minsize = this->minimumSize();
+    canvas()->setMinimumSize(minsize.width() * .5, minsize.height() *.5);
+    canvas()->resize(minsize.width() * .5, minsize.height() *.5);
+    */
+
+    _scaleDrawX = new StatScaleDraw();
+    setAxisScaleDraw(xBottom, _scaleDrawX);
+
+
+    //Plot-wide settings.
+    //Init panning and magnifying.
+    new QwtPlotPanner( canvas() ); //Inherits from QWidget.
+    new QwtPlotMagnifier( canvas() ); //Inherits from QObject.
+
+    //Style the plot box
     QFrame *frame = qobject_cast<QFrame *>(canvas());
-    if (frame) frame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
-	//Title the axes.
-	setAxisTitle(xBottom, tr("x"));
-	setAxisTitle(yLeft, tr("z"));
-	//Make grid lines.
-	gridLines = new QwtPlotGrid();
-	QPen gridPen (Qt::lightGray);
-	gridPen.setStyle(Qt::DashLine);
-	gridLines->setPen(gridPen);
-	gridLines->attach(this);
+    if (frame)
+    {
+        frame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+        frame->setObjectName("plotFrame");
+        //frame->setStyleSheet("#plotFrame { border: 1px solid red; }");
+        //QPalette* palette = new QPalette();
+        //palette->setColor(QPalette::Foreground, Qt::green);
+        //frame->setPalette(*palette);
+    }
 
-	//Set up profile plotting.
-	profileCurve = new QwtPlotCurve("Mark Profile Curve");
-	profileCurve->setRenderHint(QwtPlotItem::RenderAntialiased);
-	curvePen.setColor(Qt::red); //Default pen color is red.
-	curvePen.setWidth(LINEWIDTH);
-	profileCurve->setPen(curvePen);
-	profileCurve->attach(this); //Associate the curve with the plot.
-	
-	//Set up search window plotting.
-	searchWindow = new QwtPlotCurve("Search Window");
-	QPen windowPen (Qt::darkMagenta);
-	windowPen.setWidth(LINEWIDTH);
-	windowPen.setJoinStyle(Qt::MiterJoin);
-	searchWindow->setPen(windowPen);
-	searchWindow->attach(this);
+    //Title the axes.
+    setAxisTitle(xBottom, tr("x"));
+    setAxisTitle(yLeft, tr("z"));
+    //Make grid lines.
+    _gridLines.reset(new QwtPlotGrid());
+    QPen gridPen (Qt::lightGray);
+    gridPen.setStyle(Qt::DashLine);
+    _gridLines->setPen(gridPen);
+    _gridLines->attach(this);
+
+    //Set up profile plotting.
+    _profileCurve.reset( new QwtPlotCurve("Mark Profile Curve"));
+    _profileCurve->setRenderHint(QwtPlotItem::RenderAntialiased);
+    _curvePen.setColor(Qt::red); //Default pen color is red.
+    _curvePen.setWidth(LINEWIDTH);
+    _profileCurve->setPen(_curvePen);
+    _profileCurve->attach(this); //Associate the curve with the plot.
+
+    //Set up search window plotting.
+    _searchWindow.reset(new QwtPlotCurve("Search Window"));
+    _searchPen.setColor(Qt::darkMagenta);
+    _searchPen.setWidth(LINEWIDTH);
+    _searchPen.setJoinStyle(Qt::MiterJoin);
+    _searchWindow->setPen(_searchPen);
+    _searchWindow->attach(this);
 }
 
-statPlot::~statPlot()
+//=======================================================================
+//=======================================================================
+QSize StatPlot::sizeHint() const
 {
-	delete profileCurve;
-	delete searchWindow;
-	delete gridLines;
+    // original values
+    //return QSize(443, 433);
+
+    if (_overrideSizeHints)
+    {
+        return _szHint;
+    }
+    else
+    {
+        return QwtPlot::sizeHint();
+    }
+
+    //return QSize(358, 268);
 }
 
-void
-statPlot::setProfileCurve(const QVector<QPointF>& profilePts)
+//=======================================================================
+//=======================================================================
+QSize StatPlot::minimumSizeHint() const
+{
+    // original values
+    //return QSize(258, 168);
+    if (_overrideSizeHints)
+    {
+        return _szHintMin;
+    }
+    else
+    {
+        return QwtPlot::minimumSizeHint();
+    }
+
+    //return QSize(358, 268);
+}
+
+//=======================================================================
+//=======================================================================
+void StatPlot::setProfileCurve(const QVector<QPointF>& profilePts)
 {
 	//This is capable of being safely called multiple times.
 	//setData is inherited from QwtPlotSeriesItem<T>,
 	//which deletes the pointer when done with it.
-	profileCurve->setData(new QwtPointSeriesData(profilePts));
+    _profileCurve->setData(new QwtPointSeriesData(profilePts));
 	replot();
 }
 
-void
-statPlot::setProfile(Profile* profile, bool masked)
+//=======================================================================
+//=======================================================================
+void StatPlot::setProfile(PProfile profile, bool masked)
 {
 	if ((NULL == profile) || (profile->isNull()))
 	{
 		setProfileCurve(QVector<QPointF> ());
 		setSearchWindow(0, 0);
-		emit profileChanged(NULL, true);
+        emit profileChanged(PProfile(), true);
 	}
 	else
 	{
@@ -116,16 +206,17 @@ statPlot::setProfile(Profile* profile, bool masked)
 	}
 }
 
-void
-statPlot::setSearchWindow(int searchLoc, int searchWidth)
+//=======================================================================
+//=======================================================================
+void StatPlot::setSearchWindow(int searchLoc, int searchWidth)
 {
-	if (profileCurve->boundingRect().isValid() &&
+    if (_profileCurve->boundingRect().isValid() &&
 		(searchWidth > 0)) //If profileCurve has data.
 	{
 		//Make and plot box.
 
 		//Ensure window is not out of bounds.
-		int n = profileCurve->data()->size();
+        int n = _profileCurve->data()->size();
 		int startSample;
 		int endSample;
 		if (searchLoc < 0)
@@ -151,33 +242,82 @@ statPlot::setSearchWindow(int searchLoc, int searchWidth)
 		}
 
 		QPointF tempLowerLeft
-			(profileCurve->data()->sample(startSample).x(), profileCurve->minYValue());
+            (_profileCurve->data()->sample(startSample).x(), _profileCurve->minYValue());
 		QPointF tempLowerRight
-			(profileCurve->data()->sample(endSample).x(), profileCurve->minYValue());
+            (_profileCurve->data()->sample(endSample).x(), _profileCurve->minYValue());
 		QPointF tempUpperRight = tempLowerRight;
 		QPointF tempUpperLeft = tempLowerLeft;
-		tempUpperRight.setY(profileCurve->maxYValue());
-		tempUpperLeft.setY(profileCurve->maxYValue());
+        tempUpperRight.setY(_profileCurve->maxYValue());
+        tempUpperLeft.setY(_profileCurve->maxYValue());
 		QVector<QPointF> boxPts;
 		boxPts.push_back(tempLowerLeft);
 		boxPts.push_back(tempLowerRight);
 		boxPts.push_back(tempUpperRight);
 		boxPts.push_back(tempUpperLeft);
 		boxPts.push_back(tempLowerLeft);
-		searchWindow->setData(new QwtPointSeriesData(boxPts));
+        _searchWindow->setData(new QwtPointSeriesData(boxPts));
 		replot();
 	}
 	else
 	{
-		searchWindow->setData(new QwtPointSeriesData(QVector<QPointF> ()));
+        _searchWindow->setData(new QwtPointSeriesData(QVector<QPointF> ()));
 		replot();
 	}
 }
 
-void
-statPlot::setProfilePen(QColor penColor)
+//=======================================================================
+//=======================================================================
+void StatPlot::setProfilePen(const QColor &penColor)
 {
-	curvePen.setColor(penColor);
-	profileCurve->setPen(curvePen); //Reset the curve color.
+    _curvePen.setColor(penColor);
+    _profileCurve->setPen(_curvePen);
 	replot();
+}
+
+//=======================================================================
+//=======================================================================
+void StatPlot::setSearchPen(const QColor &penColor)
+{
+    _searchPen.setColor(penColor);
+    _searchWindow->setPen(_searchPen);
+    replot();
+}
+
+//=======================================================================
+//=======================================================================
+void StatPlot::setAxisTextX(const QString &text)
+{
+    setAxisTitle(xBottom, text);
+}
+
+//=======================================================================
+//=======================================================================
+void StatPlot::setAxisColor(const QColor &c)
+{
+    setAxisColorX(c);
+    setAxisColorY(c);
+}
+
+//=======================================================================
+//=======================================================================
+void StatPlot::setAxisColorX(const QColor &c)
+{
+    setAxisColor(xBottom, c);
+}
+
+//=======================================================================
+//=======================================================================
+void StatPlot::setAxisColorY(const QColor &c)
+{
+    setAxisColor(yLeft, c);
+}
+
+//=======================================================================
+//=======================================================================
+void StatPlot::setAxisColor(int axis, const QColor &c)
+{
+    // color the axis
+    QPalette pal = axisWidget(axis)->palette();
+    pal.setColor(QPalette::Foreground, c);
+    axisWidget(axis)->setPalette(pal);
 }

@@ -48,14 +48,14 @@ void QMdiSplitCmpWnd::init()
     // DEBUG END
 
 
-    _imgViewer0 = new RangeImageViewer(img, false, -1, 500, 500, _splitter);
+    _imgViewer0 = new RangeImageViewer(img, false, false, -1, 500, 500, _splitter);
     _splitter->addWidget(_imgViewer0);
-    _imgViewer0->getGraphicsWidget()->setWidgetLoc(GraphicsWidget::Left);
+    _imgViewer0->getGraphicsWidget()->setWidgetLoc(GraphicsWidget2::Left);
     _imgViewer0->show();
 
-    _imgViewer1 = new RangeImageViewer(PRangeImage(), false, -1, 500, 500, _splitter);
+    _imgViewer1 = new RangeImageViewer(PRangeImage(), false, false, -1, 500, 500, _splitter);
     _splitter->addWidget(_imgViewer1);
-    _imgViewer1->getGraphicsWidget()->setWidgetLoc(GraphicsWidget::Right);
+    _imgViewer1->getGraphicsWidget()->setWidgetLoc(GraphicsWidget2::Right);
     _imgViewer1->show();
 
 
@@ -137,7 +137,7 @@ int QMdiSplitCmpWnd::getSelectedView()
 
 //=======================================================================
 //=======================================================================
-GraphicsWidget* QMdiSplitCmpWnd::getSelectedGraphics()
+GraphicsWidget2* QMdiSplitCmpWnd::getSelectedGraphics()
 {
     if (getSelectedView() == 1)
     {
@@ -151,7 +151,7 @@ GraphicsWidget* QMdiSplitCmpWnd::getSelectedGraphics()
 
 //=======================================================================
 //=======================================================================
-GraphicsWidget* QMdiSplitCmpWnd::getGraphics(int iviewer)
+GraphicsWidget2* QMdiSplitCmpWnd::getGraphics(int iviewer)
 {
     if (iviewer == 1)
     {
@@ -198,8 +198,8 @@ void QMdiSplitCmpWnd::linkViews()
     int view = getSelectedView();
     if (view == 1) link = 0;
 
-    GraphicsWidget *mg = getGraphics(view);
-    GraphicsWidget *lg = getGraphics(link);
+    GraphicsWidget2 *mg = getGraphics(view);
+    GraphicsWidget2 *lg = getGraphics(link);
     RangeImageRenderer *mr = getRenderer(view);
     RangeImageRenderer *lr = getRenderer(link);
 
@@ -411,11 +411,14 @@ void QMdiSplitCmpWnd::makeConnections()
 //=======================================================================
 void QMdiSplitCmpWnd::onLButtonDownViewer0(int x, int y)
 {
+    Q_UNUSED(x);
+    Q_UNUSED(y);
+
     if (_imgViewer0->getIsWindowSelected()) return;
 
     _imgViewer0->setWindowSelected(true);
     _imgViewer1->setWindowSelected(false);
-    if (_pvc) _pvc->refreshGui(this);
+    //if (_pvc) _pvc->refreshGui(this);
 }
 
 
@@ -423,11 +426,14 @@ void QMdiSplitCmpWnd::onLButtonDownViewer0(int x, int y)
 //=======================================================================
 void QMdiSplitCmpWnd::onLButtonDownViewer1(int x, int y)
 {
+    Q_UNUSED(x);
+    Q_UNUSED(y);
+
     if (_imgViewer1->getIsWindowSelected()) return;
 
     _imgViewer1->setWindowSelected(true);
     _imgViewer0->setWindowSelected(false);
-    if (_pvc) _pvc->refreshGui(this);
+    //if (_pvc) _pvc->refreshGui(this);
 }
 
 

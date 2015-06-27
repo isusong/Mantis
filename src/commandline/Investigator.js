@@ -21,4 +21,4 @@
 
 //This calls the main comparison GUI.
 view.getInvestigatorGUI("gui");
-wait();
+//wait();

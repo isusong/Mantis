@@ -34,7 +34,7 @@ struct Box
 
     Box()
     {
-        Reset();
+        reset();
     }
 
     Box(const Vector3<T>& umin, const Vector3<T>& umax)

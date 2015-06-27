@@ -30,6 +30,7 @@
 #include <QtCore/QStringList>
 #include <cstring>
 #include <QDataStream>
+#include "logger.h"
 
 AL3DFile::AL3DFile():
     null(true), depth_data(NULL)
@@ -191,6 +192,92 @@ AL3DFile::load(QFile * file)
 
 	//Successful read.
     null = false;
+}
+
+//=======================================================================
+//=======================================================================
+bool AL3DFile::loadIconOnly(const QString& filename)
+{
+    const char *funcname = "AL3DFile::loadIconOnly() -";
+    std::string sfile = filename.toStdString();
+    QFile qfile(filename);
+    if (!qfile.open(QIODevice::ReadOnly))
+    {
+        LogError("%s failed to open the file %s", funcname, sfile.c_str());
+        return false;
+    }
+
+    QFile *file = &qfile;
+
+
+
+    //Reset object.
+    clear();
+
+    //Grab type string to make sure it is an al3d file.
+    char type[17];
+    qint64 bytesRead = file->read(type, 17);
+    if (17 != bytesRead) //Fatal error.
+    {
+        LogError("%s Error reading file identification header for file %s", funcname, sfile.c_str());
+        return false;
+    }
+    if (! strncmp(type, "AliconaImaging\r\n", 17))
+    {
+        // Wrong file type
+        LogError("%s %s is not an .al3D file.", funcname, sfile.c_str());
+        return false;
+    }
+
+    //Read tags.
+    //Read the first two tags to get the Version
+    //and number of tags.
+    bool success;
+    for (int i = 0; i < 2; ++i)
+    {
+        success = read_tag(file);
+    }
+
+    if (!success) //Fatal error.
+    {
+        LogError("%s Error reading file identification header for file %s", funcname, sfile.c_str());
+        return false;
+    }
+
+    int tag_count = get_tag("TagCount").toInt();
+
+    for (int i = 0; i < tag_count; ++i)
+    {
+        success = read_tag(file);
+    }
+
+    if (!success)
+    {
+        LogError("%s Error missing information for file %s", funcname, sfile.c_str());
+    }
+
+    //Get the user-defined comment.
+    comment = QString(file->read(256));
+
+    //Get the icon if there is one.
+    QVariant icon_offset = get_tag("IconOffset");
+    if ((! icon_offset.isNull()) && (icon_offset.toLongLong() != 0)
+        && (file->pos() <= icon_offset.toLongLong()))
+    {
+
+        file->seek(icon_offset.toLongLong());
+        success = read_icon(file);
+        if (!success)
+        {
+            LogError("%s %s: Icon failed to read properly", funcname, sfile.c_str());
+            return false;
+        }
+
+        return true;
+    }
+
+    LogError("%s %s: No Icon found", funcname, sfile.c_str());
+    return false;
 }
 
 void

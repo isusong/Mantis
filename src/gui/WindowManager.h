@@ -63,7 +63,7 @@ class WindowManager: public QObject
 	 * Colors are given at http://www.w3.org/TR/SVG/types.html#ColorKeywords
 	 */
 	QString getProfilePlot(const QString& name, 
-		Profile* profile, const QString& penColor = "red", 
+        PProfile profile, const QString& penColor = "red",
 		bool mask = true, int width = 600, int height = 300);
 
 	///Adds a search window to an existing profile plot.

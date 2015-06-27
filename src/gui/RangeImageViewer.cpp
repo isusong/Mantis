@@ -26,19 +26,46 @@
 #include "RangeImageViewer.h"
 #include <QIcon>
 #include <QColorDialog>
+#include "GuiSettings.h"
 
 //=======================================================================
 //=======================================================================
-RangeImageViewer::RangeImageViewer(PRangeImage rangeImage, bool useViewTools, int flatDimension, int w, int h, QWidget* parent):
-	QWidget(parent)
+RangeImageViewer::RangeImageViewer(PRangeImage rangeImage, bool useSplitMode, bool useViewTools, int flatDimension, int w, int h, QWidget* parent):
+    QWidget(parent)
 {
     _useViewTools = useViewTools;
+
+    QGLFormat format;
+    format.setDoubleBuffer(true);
+    format.setDepth(true);
+    format.setStencil(true);
+    format.setAlpha(false);
+    format.setSampleBuffers(true);
+    format.setSamples(4);
 
     _width = w;
     _height = h;
     _mainGrid = new QGridLayout(this);
-    _graphics = new GraphicsWidget(GraphicsWidget::None, this);
-    _renderer = new RangeImageRenderer(rangeImage, this);
+    _graphics = new GraphicsWidget2(format, useSplitMode, GraphicsWidget2::None, this);
+    _renderer = PGenericModel(new RangeImageRenderer(rangeImage, this));
+
+    // set searchbox color
+    QColor c = GuiSettings::colorSearchBoxLeft();
+    _renderer->setSearchBoxColor(c.redF(), c.greenF(), c.blueF(), c.alphaF()); // blue search box for right side
+
+    if (useSplitMode)
+    {
+        _renderer2 = PGenericModel(new RangeImageRenderer(rangeImage, this));
+        QColor c = GuiSettings::colorSearchBoxRight();
+        _renderer2->setSearchBoxColor(c.redF(), c.greenF(), c.blueF(), c.alphaF()); // blue search box for right side
+        _cmpSlider = new QSlider(Qt::Horizontal, this);
+    }
+    else
+    {
+        _cmpSlider = NULL;
+    }
+
+
 
     _viewTools = NULL;
     _actionGroup = NULL;
@@ -74,8 +101,10 @@ RangeImageViewer::RangeImageViewer(PRangeImage rangeImage, bool useViewTools, in
 
 	//Some start up defaults.
     _graphics->setDrawCS(false);
-    _renderer->setDrawCS(false);
-    _renderer->setDrawMode(2); //start in textured.
+    if (getRenderer(0)) getRenderer(0)->setDrawCS(false);
+    if (getRenderer(0)) getRenderer(0)->setDrawMode(2); //start in textured.
+    if (getRenderer(1)) getRenderer(1)->setDrawCS(false);
+    if (getRenderer(1)) getRenderer(1)->setDrawMode(2); //start in textured.
     _graphics->updateGL();
 }
 
@@ -88,12 +117,44 @@ RangeImageViewer::~RangeImageViewer()
 
 //=======================================================================
 //=======================================================================
-void RangeImageViewer::setModel(PRangeImage ri)
+void RangeImageViewer::setModel(PRangeImage ri, int viewer, bool isTip)
 {
-    if (!_renderer) return;
+    PGenericModel mdl;
+    if (viewer == 1)
+    {
+        mdl = _renderer2;
+    }
+    else
+    {
+        mdl = _renderer;
+    }
 
-    _renderer->setModel(ri);
-    _graphics->setModel(_renderer); // need to refresh values, like bounding box
+    if (!mdl)
+    {
+        RangeImageRenderer *renderer = new RangeImageRenderer(ri, this);
+        mdl.reset(renderer);
+
+        if (viewer == 1)
+        {
+            QColor c = GuiSettings::colorSearchBoxRight();
+            renderer->setSearchBoxColor(c.redF(), c.greenF(), c.blueF(), c.alphaF()); // blue search box for right side
+        }
+    }
+    else
+    {
+        ((RangeImageRenderer *)mdl.get())->setModel(ri);
+    }
+
+    ((RangeImageRenderer *)mdl.get())->setIsTip(isTip);
+
+    _graphics->setModel(mdl, viewer); // need to refresh values, like bounding box
+    _graphics->updateSplitStatsSelection();
+
+    if (isTip)
+    {
+        _graphics->setYaw(45, viewer); // tip defaults to 45
+    }
+
     _graphics->updateGL();
 }
 
@@ -112,7 +173,19 @@ bool RangeImageViewer::getIsWindowSelected()
 {
     if (!_graphics) return false;
 
-    return _graphics->getWindowSelected();
+    return _graphics->isWindowSelected();
+}
+
+//=======================================================================
+//=======================================================================
+RangeImageRenderer* RangeImageViewer::getRenderer(int num)
+{
+    if (num == 0)
+    {
+        return dynamic_cast<RangeImageRenderer *>(_renderer.get());
+    }
+
+    return dynamic_cast<RangeImageRenderer *>(_renderer2.get());
 }
 
 //=======================================================================
@@ -178,15 +251,22 @@ void RangeImageViewer::makeConnections()
         connect(_wireframe, SIGNAL(triggered()), _signalMapper, SLOT(map()));
         connect(_textured, SIGNAL(triggered()), _signalMapper, SLOT(map()));
         connect(_heightMapped, SIGNAL(triggered()), _signalMapper, SLOT(map()));
-        connect(_localCsys, SIGNAL(toggled(bool)), _renderer, SLOT(setDrawCS(bool)));
+        connect(_localCsys, SIGNAL(toggled(bool)), _renderer.get(), SLOT(setDrawCS(bool)));
         connect(_worldCsys, SIGNAL(toggled(bool)), _graphics, SLOT(setDrawCS(bool)));
         connect(_background, SIGNAL(triggered()), this, SLOT(selectBackgroundColor()));
-        connect(_signalMapper, SIGNAL(mapped(int)), _renderer, SLOT(setDrawMode(int)));
+        connect(_signalMapper, SIGNAL(mapped(int)), _renderer.get(), SLOT(setDrawMode(int)));
     }
 
-    connect(_renderer, SIGNAL(updateGL()), _graphics, SLOT(updateGL()));
+    connect(_renderer.get(), SIGNAL(updateGL()), _graphics, SLOT(updateGL()));
     connect(_graphics, SIGNAL(doubleClicked(int, int)), this, SIGNAL(doubleClicked(int, int)));
-    connect(_graphics, SIGNAL(onLButtonDown(int, int)), this, SLOT(onLButtonDownGraphicsSlot(int, int)));
+    connect(_graphics, SIGNAL(onLButtonDown(int, int)), this, SLOT(slotLButtonDownGraphics(int, int)));
+
+    if (_cmpSlider)
+    {
+        connect(_cmpSlider, SIGNAL(sliderMoved(int)), this, SLOT(slotCmpSliderChanged(int)));
+        connect(_cmpSlider, SIGNAL(sliderReleased()), this, SLOT(slotCmpSliderReleased()));
+        connect(_graphics, SIGNAL(onSplitterMoved(int,int)), this, SLOT(slotSplitterMoved(int,int)));
+    }
 }
 
 //=======================================================================
@@ -194,7 +274,7 @@ void RangeImageViewer::makeConnections()
 void RangeImageViewer::assemble()
 {
     _graphics->setModel(_renderer);
-    _graphics->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+    _graphics->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
 
     if (_useViewTools)
     {
@@ -215,6 +295,15 @@ void RangeImageViewer::assemble()
     {
         setContentsMargins(0,0,0,0);
         _mainGrid->addWidget(_graphics, 0, 0);
+
+        if (_cmpSlider)
+        {
+            QSpacerItem *vSpacer = new QSpacerItem(1, 20, QSizePolicy::Ignored, QSizePolicy::Ignored);
+            _mainGrid->addItem(vSpacer, 1, 0);
+
+            _mainGrid->addWidget(_cmpSlider, 2, 0);
+        }
+
         _mainGrid->setSpacing(0);
         _mainGrid->setContentsMargins(0,0,0,0);
     }
@@ -253,11 +342,24 @@ void RangeImageViewer::setFlatDimension(int flatDimension)
 //=======================================================================
 void RangeImageViewer::rotate(float xAxis, float yAxis, float zAxis)
 {
-    _renderer->setTransformMatrix(QMatrix4x4());
-    _renderer->rotate(zAxis, QVector3D(0, 0, 1)); //z roll
-    _renderer->rotate(yAxis, QVector3D(0, 1, 0)); //y yaw
-    _renderer->rotate(xAxis, QVector3D(1, 0, 0)); //x pitch
+    getRenderer()->setTransformMatrix(QMatrix4x4());
+    getRenderer()->rotate(zAxis, QVector3D(0, 0, 1)); //z roll
+    getRenderer()->rotate(yAxis, QVector3D(0, 1, 0)); //y yaw
+    getRenderer()->rotate(xAxis, QVector3D(1, 0, 0)); //x pitch
     _graphics->updateGL();
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::setSliderPos(float per)
+{
+    if (!_cmpSlider) return;
+    float min = _cmpSlider->minimum();
+    float max = _cmpSlider->maximum();
+
+    int pos = (int)(min + (max - min)*per);
+    _cmpSlider->setSliderPosition(pos);
+    _graphics->setSplitterX(pos);
 }
 
 //=======================================================================
@@ -281,7 +383,49 @@ void RangeImageViewer::mousePressEvent(QMouseEvent *event)
 
 //=======================================================================
 //=======================================================================
-void RangeImageViewer::onLButtonDownGraphicsSlot(int x, int y)
+void RangeImageViewer::slotLButtonDownGraphics(int x, int y)
 {
     emit onLButtonDown(x, y);
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::slotCmpSliderChanged(int value)
+{
+    if (!_graphics) return;
+
+    _graphics->setSplitterX(value);
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::slotCmpSliderReleased()
+{
+    //emit updateStatsRT();
+    emit onCmpSliderReleased();
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::slotSplitterMoved(int x,int y)
+{
+    Q_UNUSED(y);
+    _cmpSlider->setSliderPosition(x);
+}
+
+//=======================================================================
+//=======================================================================
+void RangeImageViewer::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+
+    if (!_cmpSlider) return;
+    if (!_graphics) return;
+
+
+    QSize sz = _graphics->size();
+    int loc = _graphics->getSplitterX();
+    _cmpSlider->setMinimum(0);
+    _cmpSlider->setMaximum(sz.width()-1);
+    _cmpSlider->setSliderPosition(loc);
 }

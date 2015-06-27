@@ -99,10 +99,11 @@ void
 PlateWidget::updatePlot()
 {
 	stalePlots();
-	delete profile;
-	profile = plate->getColumn(spinBox->value());
+    //delete profile;
+    Profile *profile = plate->getColumn(spinBox->value());
+    _profile.reset(profile);
 	plot->setEnabled(true);
-	plot->setProfile(profile);
+    plot->setProfile(_profile);
 	flipButton->setEnabled(true);
 }
 

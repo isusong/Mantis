@@ -5,6 +5,8 @@
 #include <QSplitter>
 #include "RangeImageViewer.h"
 
+// TODO: REMOVE THIS
+
 class SplitCmpViewCtrlsWidget;
 
 class QMdiSplitCmpWnd : public QMdiSubWindow
@@ -23,8 +25,8 @@ public:
     const QUuid& getGuid() { return _guid; }
 
     int getSelectedView();
-    GraphicsWidget* getSelectedGraphics();
-    GraphicsWidget* getGraphics(int iviewer=0);
+    GraphicsWidget2* getSelectedGraphics();
+    GraphicsWidget2* getGraphics(int iviewer=0);
     RangeImageRenderer* getSelectedRenderer();
     RangeImageRenderer* getRenderer(int iviewer=0);
 

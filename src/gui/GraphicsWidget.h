@@ -23,8 +23,8 @@
  * Author: Laura Ekstrand (ldmil@iastate.edu)
  */
 
-#ifndef __GRAPHICSWIDGET_H__
-#define __GRAPHICSWIDGET_H__
+#ifndef GRAPHICSWIDGET_H
+#define GRAPHICSWIDGET_H
 #include <QGLWidget>
 #include <QPointer>
 #include "GenericModel.h"
@@ -62,7 +62,7 @@ public:
     GraphicsWidget(WidgetLoc loc=None, QWidget* parent = 0);
 	virtual ~GraphicsWidget();
 	///Add the model to the scene. Does not take ownership of the pointer.
-	void setModel(GenericModel* newModel);
+    void setModel(PGenericModel newModel);
 
     void setWidgetLoc(WidgetLoc loc) { _wloc = loc; }
 
@@ -134,7 +134,7 @@ protected:
   WidgetLoc _wloc;
 
   ///QT Pointer to model object.
-  QPointer<GenericModel> _model;
+  PGenericModel _model;
   ///Cached bounding box dimensions from model.
   float _bbX, _bbY, _bbZ;
   ///Where to put the camera to see the whole model.

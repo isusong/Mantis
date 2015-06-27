@@ -35,20 +35,22 @@ class StatisticsWidget: public QWidget
 {
 	Q_OBJECT
 
-	///GUI (from Qt Designer)
-	Ui::StatisticsWidget ui;
-	///Interface to the statistics package.
-	StatInterface* statObject;
-	///Data set 1 (owned by the InvestigatorSubWidget)
-	Profile* data1;
-	///Data set 2 (owned by the InvestigatorSubWidget)
-	Profile* data2;
-	///Settings dialog.
-	StatisticsSettingsDialog* settings;
-
 public:
-	StatisticsWidget(QWidget *parent = 0);
+    StatisticsWidget(bool showStatPlots, bool autoUpdateRT, QWidget *parent = 0);
 	virtual ~StatisticsWidget();
+
+    StatInterface::StatConfig getStatConfig() { return statObject->getConfig(); }
+
+    void setMag1(float mag);
+    void setMag2(float mag);
+    void setZoom1(float zoom);
+    void setZoom2(float zoom);
+
+    void setOptAng(float ang);
+    void setOptR(float r);
+    void setOptT(float t);
+
+    void setOptHaveResults(bool have);
 
 public slots:
 	///Updates the T statistic.
@@ -56,9 +58,9 @@ public slots:
 	///Updates the max correlation value.
 	void updateRValue(QString rValue);
 	///Receive data set 1.
-	void setPlotData_1(Profile* data);
+    void setPlotData_1(PProfile data);
 	///Receive data set 2.
-	void setPlotData_2(Profile* data);
+    void setPlotData_2(PProfile data);
 	///Performs the comparison.
 	void compare();
 	///Report statistics package error to the user.
@@ -66,10 +68,33 @@ public slots:
 	///Show or hide the advanced settings dialog
 	void setSettingsVisibility(bool visible);
 
+    void onShowStatsPlotClicked();
+    void onAutoUpdateRTClicked();
+
+    void onOptGraphResultsClicked();
+
 signals:
 	///Reports the search window for the 1st data set.
-	void searchWindowUpdated_1(int loc, int searchWidth);
+    void searchWindowUpdated_1(int loc, int searchWidth, int dataLen);
 	///Reports the search window for the 2nd data set.
-	void searchWindowUpdated_2(int loc, int searchWidth);
+    void searchWindowUpdated_2(int loc, int searchWidth, int dataLen);
+
+    void showStatPlots(bool show);
+    void autoUpdateRT(bool update);
+
+    void showOptGraphResults();
+
+private:
+    ///GUI (from Qt Designer)
+    Ui::StatisticsWidget ui;
+    ///Interface to the statistics package.
+    StatInterface* statObject;
+    ///Data set 1 (owned by the InvestigatorSubWidget)
+    PProfile _data1;
+    ///Data set 2 (owned by the InvestigatorSubWidget)
+    PProfile _data2;
+    ///Settings dialog.
+    StatisticsSettingsDialog* settings;
+
 };
 #endif //!defined __STATISTICSWIDGET_H__

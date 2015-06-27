@@ -27,6 +27,8 @@
 #include "StreamBuffer.h"
 #include <cstring>
 #include <QDebug>
+#include "logger.h"
+#include <GL/glu.h>
 
 StreamBuffer::StreamBuffer(int maxVertices, 
 	GLenum vertexDrawMode)
@@ -37,8 +39,8 @@ StreamBuffer::StreamBuffer(int maxVertices,
 	vertices = new GLfloat[4*capacity];
 
 	//Set up the vbo.
-	vbo.create();
-	vbo.bind();
+    bool res = vbo.create();
+    res = vbo.bind();
 	//Tells OpenGL that the buffer will be overwritten after almost
 	//every draw.
 	vbo.setUsagePattern(QGLBuffer::StreamDraw);
@@ -56,6 +58,11 @@ StreamBuffer::addVertex(float x, float y, float z, float w)
 {
 	//If full, go ahead and send the vertices to the GPU.
 	if (size == capacity) flush();
+
+    if ((4*size + 3) >= 4*capacity)
+    {
+        //int idebug = 1;
+    }
 
 	//Add the new vertex.
 	vertices[4*size + 0] = x;
@@ -94,6 +101,8 @@ StreamBuffer::flush()
 			std::memcpy(bufferMap, vertices, 4*size*sizeof(GLfloat));
 			unmapSuccess = vbo.unmap();
 			if (unmapSuccess) break;
+
+            LogError("StreamBuffer::flush() - failed to unmap vbo, trying again...");
 		}
 
 		if (unmapSuccess)
@@ -107,8 +116,18 @@ StreamBuffer::flush()
 			//qDebug() << "Done putting.";
 			//qDebug() << "size = " << size;
 			//qDebug() << "capacity = " << capacity;
-			glDrawArrays(drawMode, 0, size);
-			//qDebug() << "Drew arrays.";
+            glDrawArrays(drawMode, 0, size);
+            //qDebug() << "Drew arrays.";
+
+            /*
+            GLenum errCode;
+            if ((errCode = glGetError()) != GL_NO_ERROR)
+            {
+                LogError("StreamBuffer::flush() - OpenGL Error: %s", gluErrorString(errCode));
+                //openGLError stays true.
+            }
+            */
+
 		}
 		else
 		{

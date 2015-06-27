@@ -31,7 +31,7 @@
 #include <QGridLayout>
 #include <QSplitter>
 #include "RangeImageViewer.h"
-#include "qwt-plots/statPlot.h"
+#include "qwt-plots/StatPlot.h"
 #include <QGroupBox>
 #include <QToolButton>
 
@@ -57,24 +57,24 @@ public:
 public slots:
 	void flip(); ///< Flips the profile
 	///Pass-thru for adding the search window.
-	void setSearchWindow(int loc, int width);
+    void setSearchWindow(int loc, int width, int dataLen);
 
 signals:
 	///Give the GUI a status message.
 	void statusMessage(QString msg);
 	///Announce that the profile has changed.
-	void profileChanged(Profile* profile, bool masked);
+    void profileChanged(PProfile profile, bool masked);
 
 protected:
     //Data objects.
-    Profile* profile; ///< The virtual mark or cross-section.
+    PProfile _profile; ///< The virtual mark or cross-section.
 
     //Gui Objects.
     QGridLayout* grid;
     QSplitter* horizontalSplitter; ///< Main splitter.
     RangeImageViewer* graphics; ///< 3D view
     QSplitter* verticalSplitter; ///< Right-hand splitter.
-    statPlot* plot; ///< Profile plot
+    StatPlot* plot; ///< Profile plot
     QGroupBox* controls; ///< Holds the relevant controls
     QToolButton* flipButton; ///< Flips the profile.
 
