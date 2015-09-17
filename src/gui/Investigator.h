@@ -73,6 +73,8 @@ public slots:
     void openMaskEditor();
     void importTip();
     void importPlate();
+    void importKnife();
+    void importBullet();
     void updateMtFiles();
 	void assignSlot(InvestigatorSubWidget* window); 
 	void updateEnabledStatus(); ///< Enable/Disable actions.
@@ -103,6 +105,8 @@ public slots:
 
     void slotOnSubWndActivated(QMdiSubWindow *wnd);
 
+    void slotOnMaskEditorFileSaved(QString file);
+
 
 protected:
     virtual void keyPressEvent(QKeyEvent* event);
@@ -121,7 +125,8 @@ protected:
     void refreshThumbLoaderSelection();
     void refreshMagAndZoom();
 
-    void loadMaskEditor(PRangeImage img);
+    void import(RangeImage::EImgType type);
+    QMdiMaskEditor* loadMaskEditor(PRangeImage img);
 
 protected:
     //Data Objects.
@@ -151,6 +156,8 @@ protected:
     QAction* _openMaskEditorAction;
     QAction* _importTipAction;
     QAction* _importPlateAction;
+    QAction* _importKnifeAction;
+    QAction* _importBulletAction;
     QAction* _updateMtFiles;
     QMenu* _viewMenu;
     QAction* _actionViewLigthing;

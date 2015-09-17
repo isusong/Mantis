@@ -56,7 +56,7 @@ class RangeImageViewer: public QWidget
 		int w = 500, int h = 500, QWidget* parent = 0);
 	virtual ~RangeImageViewer();
 
-    void setModel(PRangeImage ri, int viewer=0, bool isTip=false);
+    void setModel(PRangeImage ri, int viewer=0);
     void setWindowSelected(bool sel);
     bool getIsWindowSelected();
 

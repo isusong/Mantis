@@ -54,6 +54,6 @@ std::auto_ptr<std::string> all_strerror(int n) {
     //}
 	//std::auto_ptr<std::string> perrstr(new std::string(s));
 	//free(s);
-	std::auto_ptr<std::string> perrstr(new std::string(strerror(n)));
+    std::auto_ptr<std::string> perrstr(new std::string(strerror(n)));
 	return perrstr;
 }

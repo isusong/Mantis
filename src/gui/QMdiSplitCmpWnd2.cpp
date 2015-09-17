@@ -251,16 +251,15 @@ void QMdiSplitCmpWnd2::setProfile(int iviewer, PProfile pro)
         float degx = getGraphics()->getPitch(iviewer);
         float degy = getGraphics()->getYaw(iviewer);
         float degz = getGraphics()->getRoll(iviewer);
-
-        _proInfo[iviewer].isTip = true;
         _proInfo[iviewer].tipAng = QVector3D(degx, degy, degz);
     }
     else
     {
-        _proInfo[iviewer].isTip = false;
         _proInfo[iviewer].plateCol = r->getProfilePlateCol();
     }
 
+
+    _proInfo[iviewer].dataType = r->getImgType();
     _proInfo[iviewer].profile = pro;
 
     _statPlots[iviewer]->setProfile(getProfile(iviewer));
@@ -374,11 +373,19 @@ void QMdiSplitCmpWnd2::setProfileAxisText(int viewer)
     {
         strx = tr("x");
     }
-    else if (info->isTip)
+    else if (info->dataType == RangeImage::ImgType_Tip)
     {
         strx = QString(tr("x - tip angle %1,%2,%3")).arg(QString::number(info->tipAng.y(), 'f', 0 ),
                                                    QString::number(info->tipAng.x(), 'f', 0 ),
                                                    QString::number(info->tipAng.z(), 'f', 0 ));
+    }
+    else if (info->dataType == RangeImage::ImgType_Knf)
+    {
+        strx = QString(tr("x - knife column %1")).arg(QString::number(info->plateCol));
+    }
+    else if (info->dataType == RangeImage::ImgType_Bul)
+    {
+        strx = QString(tr("x - bullet column %1")).arg(QString::number(info->plateCol));
     }
     else
     {
@@ -463,9 +470,21 @@ bool QMdiSplitCmpWnd2::loadRangeImg(const QString &filename, int viewer)
         return false;
     }
 
-    bool isTip = UtlMtFiles::isTipFile(filename);
+    // new import system should tag image type, this is for legacy tip and plate files, created before the import feature.
+    if (rimg->isUnkType())
+    {
+        bool isTip = UtlMtFiles::isTipFile(filename);
+        if (isTip)
+        {
+            rimg->setImgType(RangeImage::ImgType_Tip);
+        }
+        else
+        {
+            rimg->setImgType(RangeImage::ImgType_Plt);
+        }
+    }
 
-    setRangeImg(rimg, viewer, isTip);
+    setRangeImg(rimg, viewer);
 
     QApplication::restoreOverrideCursor();
     return true;
@@ -473,7 +492,7 @@ bool QMdiSplitCmpWnd2::loadRangeImg(const QString &filename, int viewer)
 
 //=======================================================================
 //=======================================================================
-void QMdiSplitCmpWnd2::setRangeImg(PRangeImage rimg, int viewer, bool isTip)
+void QMdiSplitCmpWnd2::setRangeImg(PRangeImage rimg, int viewer)
 {
     bool allowUpdPrev = _allowProfileUpd;
     _allowProfileUpd = false;
@@ -498,14 +517,14 @@ void QMdiSplitCmpWnd2::setRangeImg(PRangeImage rimg, int viewer, bool isTip)
 
     _proInfo[viewer].filename = fname;
     _proInfo[viewer].fullpath = rimg->getFileName();
-    _proInfo[viewer].isTip = isTip;
+    _proInfo[viewer].dataType = rimg->getImgType();
     _proInfo[viewer].tipAng = QVector3D(0,0,0);
     _proInfo[viewer].plateCol = 0;
     _proInfo[viewer].profile.reset();
 
     //unmark(); // turn mark off if there is one
 
-    _imgViewer->setModel(rimg, viewer, isTip);
+    _imgViewer->setModel(rimg, viewer);
 
 
     // set the splitter back to the center

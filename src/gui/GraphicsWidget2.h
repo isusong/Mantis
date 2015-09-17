@@ -97,6 +97,12 @@ public:
             loc = Left;
             perWidth = .5;
         }
+
+        bool isValid()
+        {
+            if (!model.get()) return false;
+            return model->isValid();
+        }
     };
 
 public:
@@ -218,6 +224,8 @@ protected:
     bool linkOnZoom();
     bool linkOnAng();
     bool linkOnPos();
+
+    float computeZ(ModelData *md1, ModelData *md2, int *mdUsed);
 
 protected:
 

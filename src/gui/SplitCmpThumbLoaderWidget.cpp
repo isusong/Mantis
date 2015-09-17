@@ -32,6 +32,7 @@
 #include "../core/RangeImage.h"
 #include "QListWidgetItemEx.h"
 #include "GuiSettings.h"
+#include "../core/UtlQt.h"
 
 //=======================================================================
 //=======================================================================
@@ -84,13 +85,17 @@ bool SplitCmpThumbLoaderWidget::setProjectFolder(const QString &dirPath)
         return false;
     }
 
+    _dirPath = dirPath;
+    _dirPath.replace('\\', '/');
+
     // add all items to the list
     ui->listWidgetThumbs->clear();
 
     for (unsigned int i=0; i<fileItems.size(); i++)
     {
         UtlMtFiles::PFileItem item = fileItems[i];
-
+        loadItem(item->fileName, item->fullPathMt);
+        /*
         // load the icon
         QListWidgetItem *listItem = NULL;
         RangeImage ri(item->fullPathMt, true);
@@ -114,9 +119,72 @@ bool SplitCmpThumbLoaderWidget::setProjectFolder(const QString &dirPath)
 
         listItem->setBackgroundColor(GuiSettings::colorListWidgetBg());
         ui->listWidgetThumbs->addItem(listItem);
+        */
     }
 
 
+    return true;
+}
+
+
+//=======================================================================
+//=======================================================================
+void SplitCmpThumbLoaderWidget::loadItem(const QString &fileName, const QString &fullpathMt)
+{
+    // load the icon
+    QListWidgetItem *listItem = NULL;
+    RangeImage ri(fullpathMt, true);
+    if (ri.isIconValid())
+    {
+        QImage icon = ri.getIcon();
+        QPixmap pmap = QPixmap::fromImage(icon);
+        QString ssfile("D:/dev/mantis_dev/mantis/data/test/");
+        ssfile += fileName;
+        ssfile += ".png";
+
+
+        ri.getIcon().save(ssfile);
+        listItem = new QListWidgetItemEx(QIcon(pmap), fileName, fullpathMt);
+    }
+    else
+    {
+        listItem = new QListWidgetItemEx(QIcon(":/general/Icons/questionmark.png"), fileName, fullpathMt);
+    }
+
+
+    listItem->setBackgroundColor(GuiSettings::colorListWidgetBg());
+    ui->listWidgetThumbs->addItem(listItem);
+}
+
+//=======================================================================
+//=======================================================================
+bool SplitCmpThumbLoaderWidget::validateInsert(const QString &filepath)
+{
+    // is it in the project path
+    QString dirpath = _dirPath.toLower();
+    QString fpath = filepath.toLower();
+    fpath.replace('\\', '/');
+    if (!fpath.contains(dirpath))
+    {
+        return false;
+    }
+
+    // do we already have the item
+    for (int i=0; i<ui->listWidgetThumbs->count(); i++)
+    {
+        QListWidgetItemEx *item = (QListWidgetItemEx *)ui->listWidgetThumbs->item(i);
+        if (!item) continue;
+
+        QString file = item->getFile();
+        if (!QString::compare(fpath, file, Qt::CaseInsensitive))
+        {
+            return false; // already loaded
+        }
+    }
+
+    // ok add it
+    QString fileName = UtlQt::fileNameWithExt(filepath);
+    loadItem(fileName, filepath);
     return true;
 }
 

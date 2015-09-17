@@ -31,6 +31,7 @@
 #include "ComputeFlatScrewdriverTipCsys.h"
 #include "FindValidMarkRange.h"
 #include "ManipulatePlate.h"
+#include "../IProgress.h"
 
 //=======================================================================
 //=======================================================================
@@ -58,10 +59,27 @@ int Clean::maxGray(QRgb color)
 }
 
 //=======================================================================
+// finds all all threshold disabled points and disables them in the image mask
+//=======================================================================
+int Clean::thresholdMask(RangeImage* ri, const QImage *qualityMap, int quality_threshold, int texture_threshold, IProgress *prog)
+{
+    if (!qualityMap)
+    {
+        if (prog) prog->progStep(10);
+        return 0;
+    }
+
+    int pixelsTurnedOff = 0;
+    QBitArray tmask = threshold(ri, *qualityMap, quality_threshold, texture_threshold, &pixelsTurnedOff, prog);
+    ri->setMask(tmask);
+    return pixelsTurnedOff;
+}
+
+//=======================================================================
 // Threshold based on the quality map and the texture.
 // Does not delete tip pointer.
 //=======================================================================
-QBitArray Clean::threshold(RangeImage* tip, const QImage& qualityMap, int quality_threshold, int texture_threshold)
+QBitArray Clean::threshold(RangeImage* tip, const QImage& qualityMap, int quality_threshold, int texture_threshold, int *pixelsTurnedOff, IProgress *prog)
 {
 	//Cache some items from the tip.
 	int width = tip->getWidth();
@@ -69,8 +87,13 @@ QBitArray Clean::threshold(RangeImage* tip, const QImage& qualityMap, int qualit
 	QBitArray mask (tip->getMask()); //Make a copy of the mask.
 	QImage texture = tip->getTexture(); 
 	int qPixel, tPixel;
+    int turnedOff = 0;
+    int progcount = 0, iLastStep = 0;
 	
 	//Modify the mask copy.
+    // + 10 progsteps for this loop
+    progcount = 0;
+    iLastStep = 0;
 	for (int i = 0; i < height; ++i)
 	{
 		for (int j = 0; j < width; ++j)
@@ -89,10 +112,35 @@ QBitArray Clean::threshold(RangeImage* tip, const QImage& qualityMap, int qualit
 				//turn it off.
 				if ((tPixel < texture_threshold) ||
 					(qPixel > quality_threshold))
+                {
 					mask.clearBit(width*i + j);
+                    turnedOff++;
+                }
 			}
 		}
+
+        // prog percent update 10.. 10% updates = 100% and 10 progsteps
+        int tot = i - iLastStep;
+        float per = (float)tot / (float)height;
+        if (per >= .1) // is it 10 percent
+        {
+            iLastStep = i;
+            if (progcount < 10)
+            {
+                if (prog) prog->progStep();
+                progcount++;
+            }
+        }
 	}
+
+    // prog percent update max out
+    if (progcount < 10)
+    {
+        // prog update
+        if (prog) prog->progStep(10 - progcount);
+    }
+
+    if (pixelsTurnedOff) *pixelsTurnedOff = turnedOff;
 
 	return mask;
 }
@@ -171,8 +219,7 @@ void  Clean::removeAdditionalBoundary(unsigned char* maskData, int imageWidth, i
 RangeImage* Clean::cleanFlatScrewdriverTip(RangeImage* tip, const QImage& qualityMap, int quality_threshold, int texture_threshold)
 {
 	//Threshold the tip's mask with texture and quality.
-	QBitArray mask = threshold(tip, qualityMap, 
-		quality_threshold, texture_threshold);
+    QBitArray mask = threshold(tip, qualityMap, quality_threshold, texture_threshold);
 
 	//Cache some data.
 	int width = tip->getWidth();
@@ -567,8 +614,9 @@ RangeImage* Clean::cleanSlipJointPliersMark(RangeImage* mark, QString qualityMap
 }
 
 //=======================================================================
+// 3 prog steps
 //=======================================================================
-RangeImage* Clean::detrend(RangeImage* mark)
+RangeImage* Clean::detrend(RangeImage* mark, IProgress *prog)
 {
 	//Cache some data.
 	int width = mark->getWidth();
@@ -585,6 +633,9 @@ RangeImage* Clean::detrend(RangeImage* mark)
 	//Copy the depth into a mutable vector.
 	QVector<float> depth = QVector<float>(mark->getDepth());
 
+    // prog update
+    if (prog) prog->progStep();
+
 	//Detrending operation.
 	//Fit a plane to the data, and then subtract it from
 	//the depth.  WARNING: This modifies depth, but it
@@ -592,12 +643,21 @@ RangeImage* Clean::detrend(RangeImage* mark)
 	qDebug() << "Removing plane slope....";
 	ManipulatePlate maniPlate(mark, depth.data());
 
-    return new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, coordinateSystem, imgType);
+    // prog update
+    if (prog) prog->progStep();
+
+    RangeImage *img = new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, coordinateSystem, imgType);
+
+    // prog update
+    if (prog) prog->progStep();
+
+    return img;
 }
 
 //=======================================================================
+// 2 prog steps
 //=======================================================================
-RangeImage* Clean::coordinateSystem2Centroid(RangeImage* mark)
+RangeImage* Clean::coordinateSystem2Centroid(RangeImage* mark, IProgress *prog)
 {
 	//Cache some data.
 	int width = mark->getWidth();
@@ -630,17 +690,27 @@ RangeImage* Clean::coordinateSystem2Centroid(RangeImage* mark)
 			}
 		}
 	}
+
+    // prog update
+    if (prog) prog->progStep();
+
 	//Number added in was number of "on" points.
 	centroid /= mask.count(true);
 	QMatrix4x4 coordinateSystem;
 	coordinateSystem.translate(-centroid);
 	
-    return new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, coordinateSystem, imgType);
+    RangeImage *img = new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, coordinateSystem, imgType);
+
+    // prog update
+    if (prog) prog->progStep();
+
+    return img;
 }
 
 //=======================================================================
+// 2 progress steps
 //=======================================================================
-RangeImage* Clean::coordinateSystem4Tip(RangeImage* tip)
+RangeImage* Clean::coordinateSystem4Tip(RangeImage* tip, IProgress *prog)
 {
 	//Cache some data.
 	int width = tip->getWidth();
@@ -658,12 +728,21 @@ RangeImage* Clean::coordinateSystem4Tip(RangeImage* tip)
     ComputeFlatScrewdriverTipCsys computeCsys (width, height, pixelSizeX, pixelSizeY, depth, mask);
 	QMatrix4x4 csys = computeCsys.getCoordinateSystemMatrix();
 
-    return new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, csys, imgType);
+    // prog update
+    if (prog) prog->progStep();
+
+    RangeImage *img =  new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, csys, imgType);
+
+    // prog update
+    if (prog) prog->progStep();
+
+    return img;
 }
 
 //=======================================================================
+// 4 progress steps
 //=======================================================================
-RangeImage* Clean::connectedComponents(RangeImage* data)
+RangeImage* Clean::connectedComponents(RangeImage* data, IProgress *prog)
 {
 	//Cache some data.
 	int width = data->getWidth();
@@ -681,15 +760,22 @@ RangeImage* Clean::connectedComponents(RangeImage* data)
 	//Copy the mask into an unsigned char array with 255 as "on."
 	QVector<unsigned char> ucharMask;
 	for (int i = 0; i < mask.size(); ++i)
-		ucharMask.push_back(255*mask.testBit(i));
+    {
+        ucharMask.push_back(255*mask.testBit(i));
+    }
+
+    // prog update
+    if (prog) prog->progStep();
 
 	//Use connected components to eliminate all but
 	//the largest unmasked area.
 	CFastConnectComponent conComp(width, height);
 	QVector<unsigned char> ucharMaskCopy (ucharMask);
-	conComp.FastConnectAlg(ucharMask.data(),
-		ucharMaskCopy.data(), 0, 255);
+    conComp.FastConnectAlg(ucharMask.data(), ucharMaskCopy.data(), 0, 255);
 	ucharMask = ucharMaskCopy;
+
+    // prog update
+    if (prog) prog->progStep();
 	
 	//Convert results to QBitArray.
 	//If the bit is on in the mask and off in ucharMask,
@@ -709,12 +795,21 @@ RangeImage* Clean::connectedComponents(RangeImage* data)
 		}
 	}
 
-    return new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, csys, imgType);
+    // prog update
+    if (prog) prog->progStep();
+
+    RangeImage *img = new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, csys, imgType);
+
+    // prog update
+    if (prog) prog->progStep();
+
+    return img;
 }
 
 //=======================================================================
+// 8 progress steps + 4 prog steps for spikeRemover.PolyLineRemoval = 12
 //=======================================================================
-RangeImage* Clean::spikeRemovalHoleFilling(RangeImage* tip)
+RangeImage* Clean::spikeRemovalHoleFilling(RangeImage* tip, IProgress *prog)
 {
 	//Cache some data.
 	int width = tip->getWidth();
@@ -733,7 +828,12 @@ RangeImage* Clean::spikeRemovalHoleFilling(RangeImage* tip)
 	//Copy the tip mask into an unsigned char array with 255 as "on."
 	QVector<unsigned char> ucharMask;
 	for (int i = 0; i < mask.size(); ++i)
+    {
 		ucharMask.push_back(255*mask.testBit(i));
+    }
+
+    // prog update
+    if (prog) prog->progStep();
 
 	//// remove spikes based on thresholding
 	//For now, this doesn't modify anything but
@@ -743,11 +843,18 @@ RangeImage* Clean::spikeRemovalHoleFilling(RangeImage* tip)
 		xData.push_back(j*pixelSizeX);
 	for (int i = 0; i < height; ++i)
 		yData.push_back(i * pixelSizeY);
+
+    // prog update
+    if (prog) prog->progStep();
+
 	CSpikeRemoval spikeRemover;
 	//If the last arg is false, this may modify the depth.
 	spikeRemover.PolyLineRemoval(xData.data(), yData.data(),
 		depth.data(), ucharMask.data(), 100, 100, 7,
-		width, height, true);
+        width, height, true, prog);
+
+    // prog update
+    if (prog) prog->progStep();
 
 	//// determine the fast component again
 	CFastConnectComponent conComp(width, height);
@@ -756,6 +863,9 @@ RangeImage* Clean::spikeRemovalHoleFilling(RangeImage* tip)
 		ucharMaskCopy.data(), 0, 255);
 	ucharMask = ucharMaskCopy;
 
+    // prog update
+    if (prog) prog->progStep();
+
 	//Fill holes in depth data.
 	//Only fills holes with width less than or equal
 	//to the last argument to FillHolesFloat.
@@ -763,9 +873,14 @@ RangeImage* Clean::spikeRemovalHoleFilling(RangeImage* tip)
 	CFilterImage filter(width, height);
 	filter.FillHolesFloat(depth.data(), ucharMask.data(), 20);
 
+    // prog update
+    if (prog) prog->progStep();
+
 	// eat in additional few points from outside
-	removeAdditionalBoundary(ucharMask.data(), 
-		width, height, 20, 20, 20, 20);
+    removeAdditionalBoundary(ucharMask.data(), width, height, 20, 20, 20, 20);
+
+    // prog update
+    if (prog) prog->progStep();
 
 	//Convert results to QBitArray and make new tip.
 	//If the bit is on in the mask and off in ucharMask,
@@ -785,5 +900,13 @@ RangeImage* Clean::spikeRemovalHoleFilling(RangeImage* tip)
 		}
 	}
 
-    return new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, csys, imgType);
+    // prog update
+    if (prog) prog->progStep();
+
+    RangeImage *img =  new RangeImage(width, height, pixelSizeX, pixelSizeY, depth, texture, mask, csys, imgType);
+
+    // prog update
+    if (prog) prog->progStep();
+
+    return img;
 }

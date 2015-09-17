@@ -143,6 +143,7 @@ public:
 
     bool setIsTip(bool isTip);
     bool getIsTip();
+    int getImgType();
     bool setDrawMark(bool draw);
     bool getDrawMark();
 
@@ -217,6 +218,7 @@ public:
     virtual void setSearchBox(int y, int height, int dataLen, bool draw=true);
     virtual void setSearchBoxColor(float r, float g, float b, float a);
 
+    virtual bool isValid();
     virtual void logInfo();
 
 public slots:

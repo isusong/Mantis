@@ -31,6 +31,7 @@
 #include <QVector>
 #include <QBitArray>
 #include <QMetaType>
+#include <memory>
 
 /**
  * A class for reading in profiles (.csv), 

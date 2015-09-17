@@ -117,7 +117,7 @@ RangeImageViewer::~RangeImageViewer()
 
 //=======================================================================
 //=======================================================================
-void RangeImageViewer::setModel(PRangeImage ri, int viewer, bool isTip)
+void RangeImageViewer::setModel(PRangeImage ri, int viewer)
 {
     PGenericModel mdl;
     if (viewer == 1)
@@ -145,12 +145,12 @@ void RangeImageViewer::setModel(PRangeImage ri, int viewer, bool isTip)
         ((RangeImageRenderer *)mdl.get())->setModel(ri);
     }
 
-    ((RangeImageRenderer *)mdl.get())->setIsTip(isTip);
+    ((RangeImageRenderer *)mdl.get())->setIsTip(ri->isTip());
 
     _graphics->setModel(mdl, viewer); // need to refresh values, like bounding box
     _graphics->updateSplitStatsSelection();
 
-    if (isTip)
+    if (ri->isTip())
     {
         _graphics->setYaw(45, viewer); // tip defaults to 45
     }

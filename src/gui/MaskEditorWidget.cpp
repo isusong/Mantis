@@ -35,6 +35,10 @@
 #include "DlgClean.h"
 #include "../core/CleaningCode/Clean.h"
 #include "../core/logger.h"
+#include "../core/IProgress.h"
+#include "../core/UtlQt.h"
+#include "QProgressDialogEx.h"
+#include "ThreadCleaner.h"
 
 using std::cout;
 using std::endl;
@@ -74,6 +78,8 @@ MaskEditorWidget::~MaskEditorWidget()
 //=======================================================================
 void MaskEditorWidget::paintEvent(QPaintEvent* event)
 {
+    QMutexLocker lock(&_imgLock);
+
 	QPainter painter (this);
 	QRect drawRect = event->rect();
 	
@@ -200,15 +206,25 @@ bool MaskEditorWidget::isModified()
 
 //=======================================================================
 //=======================================================================
+void MaskEditorWidget::setModified(bool m)
+{
+    _modified = m;
+}
+
+//=======================================================================
+//=======================================================================
 float MaskEditorWidget::brushSize()
 {
     return App::settings()->mask().szBrush;
 }
 
 //=======================================================================
+// 3 prog steps
 //=======================================================================
-void MaskEditorWidget::setImg(PRangeImage img)
+void MaskEditorWidget::setImg(PRangeImage img, IProgress *prog)
 {
+    QMutexLocker lock(&_imgLock);
+
     _modified = false;
 
     _rngImg = img;
@@ -219,11 +235,15 @@ void MaskEditorWidget::setImg(PRangeImage img)
         _textureWidth = 0;
         _textureHeight = 0;
 
-        update();  //Refresh widget.
+        if (!prog) update();  //Refresh widget (don't refresh if calling from non-gui thread)
+
+        // prog update
+        if (prog) prog->progStep(4);
+
         return;
     }
 
-    QApplication::setOverrideCursor(Qt::WaitCursor);
+    if (!prog) QApplication::setOverrideCursor(Qt::WaitCursor);
 
     QBitArray mask; //to hold the mask temporarily.
 
@@ -240,6 +260,9 @@ void MaskEditorWidget::setImg(PRangeImage img)
     {
         _maskImg = QImage (_textureWidth, _textureHeight, QImage::Format_ARGB32); //_Premultiplied);
     }
+
+    // prog update
+    if (prog) prog->progStep();
 
     for (int i = 0; i < _textureHeight; ++i)
     {
@@ -258,6 +281,9 @@ void MaskEditorWidget::setImg(PRangeImage img)
         }
     }
 
+    // prog update
+    if (prog) prog->progStep();
+
     //Rotate the images for easier viewing.
     QMatrix rot;
     rot.rotate(90);
@@ -267,9 +293,23 @@ void MaskEditorWidget::setImg(PRangeImage img)
     _textureWidth = _textureHeight;
     _textureHeight = temp;
 
-    update();  //Refresh widget.
+    // prog update
+    if (prog) prog->progStep();
 
-    QApplication::restoreOverrideCursor();
+    if (!prog) update();  //Refresh widget (don't refresh if calling from non-gui thread)
+
+    if (!prog) QApplication::restoreOverrideCursor();
+}
+
+//=======================================================================
+//=======================================================================
+PRangeImage MaskEditorWidget::getImgCopy()
+{
+    QMutexLocker lock(&_imgLock);
+
+    if (!_rngImg) return PRangeImage();
+
+    return PRangeImage( new RangeImage(*_rngImg.data()));
 }
 
 //=======================================================================
@@ -297,6 +337,48 @@ void MaskEditorWidget::maskClear()
 
 //=======================================================================
 //=======================================================================
+int MaskEditorWidget::computeProgCount()
+{
+    if (!_dlgClean || !_rngImg) return 0;
+
+    int count = 0;
+
+    // save mask
+    count += 3; // 1 for mask creation, 1 for mask image rotation, 1 for image creation
+
+    if (_dlgClean->getDataIslands())
+    {
+        count += 4; // 4 for algoritm
+    }
+    if (_dlgClean->getTipSpike())
+    {
+        count += 8 + 24; // 32 for algoritm
+    }
+    if (_dlgClean->getTipCoordSys() && _rngImg->isTip())
+    {
+        count += 2; // 2 for algoritm
+    }
+    if (_dlgClean->getPltDetrend())
+    {
+        count += 3; // 3 for algoritm
+    }
+    if (_dlgClean->getPltCoordSys() && _rngImg->isPlate())
+    {
+        count += 2; // 2 for algoritm
+    }
+    if (_dlgClean->getThresholdRun())
+    {
+        count += 10; // 10 for algoritm
+    }
+
+    count += 3; // 3 steps for final set image call
+
+    return count;
+}
+
+/*
+//=======================================================================
+//=======================================================================
 void MaskEditorWidget::clean()
 {
     if (_rngImg.isNull())
@@ -306,7 +388,124 @@ void MaskEditorWidget::clean()
     }
 
     //Perform any desired cleaning functions
-    DlgClean options(_rngImg->getImgType());
+    _dlgClean.reset(new DlgClean(_rngImg->getImgType()));
+    if (_dlgClean->exec() != QDialog::Accepted || !_dlgClean->haveMod())
+    {
+        return;
+    }
+
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+
+    // save the mask to use the current modified mask data during cleaning
+    saveMask();
+
+    //Run connected components to avoid floating data islands.
+    Clean cleaner;
+    RangeImage *imgNew;
+
+    if (_dlgClean->getDataIslands())
+    {
+        imgNew = cleaner.connectedComponents(_rngImg.data());
+        imgNew->setFileName(_rngImg->getFileName());
+        _rngImg = PRangeImage(imgNew);
+    }
+    if (_dlgClean->getTipSpike())
+    {
+        LogTrace("Removing spikes and filling holes... ");
+        // This redoes the conncomps if necessary.
+
+        imgNew = cleaner.spikeRemovalHoleFilling(_rngImg.data());
+        imgNew->setFileName(_rngImg->getFileName());
+        _rngImg = PRangeImage(imgNew);
+    }
+    if (_dlgClean->getTipCoordSys() && _rngImg->isTip())
+    {
+        LogTrace("Computing a tip coordinate system.");
+        imgNew = cleaner.coordinateSystem4Tip(_rngImg.data());
+        imgNew->setFileName(_rngImg->getFileName());
+        _rngImg = PRangeImage(imgNew);
+    }
+    if (_dlgClean->getPltDetrend())
+    {
+        LogTrace("Detrending....");
+        imgNew = cleaner.detrend(_rngImg.data());
+        imgNew->setFileName(_rngImg->getFileName());
+        _rngImg = PRangeImage(imgNew);
+    }
+    if (_dlgClean->getPltCoordSys() && _rngImg->isPlate())
+    {
+        LogTrace("Computing a centroid coordinate system.");
+        imgNew = cleaner.coordinateSystem2Centroid(_rngImg.data());
+        imgNew->setFileName(_rngImg->getFileName());
+        _rngImg = PRangeImage(imgNew);
+    }
+
+
+    // reset the image to get everything up to date
+    setImg(_rngImg);
+    _modified = true; // data has been modified
+
+    QApplication::restoreOverrideCursor();
+}
+*/
+
+//=======================================================================
+//=======================================================================
+void MaskEditorWidget::cleanWithProgress()
+{
+    if (_rngImg.isNull())
+    {
+        QMessageBox::warning(this, "Mask Editor Clean", "You must load or import data first to then clean it.");
+        return;
+    }
+
+    //Perform any desired cleaning functions
+    QString fpath = UtlQt::filePath(_rngImg->getFileName());
+    _dlgClean.reset(new DlgClean(_rngImg->getImgType(), fpath));
+    if (_dlgClean->exec() != QDialog::Accepted || !_dlgClean->haveMod())
+    {
+        return;
+    }
+
+    QProgressDialogEx progress("Cleaning..", "Abort", this);
+    progress.setWindowModality(Qt::WindowModal);
+
+    std::tr1::shared_ptr<ThreadCleaner> threadCleaner;
+    threadCleaner.reset(new ThreadCleaner(this));
+
+
+    bool res = true;
+    res = connect(threadCleaner.get(), SIGNAL(signalStart()), &progress, SLOT(slotStart()));
+    res = connect(threadCleaner.get(), SIGNAL(signalProgress(float)), &progress, SLOT(slotProgress(float)));
+    res = connect(threadCleaner.get(), SIGNAL(signalMsg(QString)), &progress, SLOT(slotMsg(QString)));
+    res = connect(&progress, SIGNAL(canceled()), threadCleaner.get(), SLOT(slotCancel()));
+
+    progress.setValue(0);
+    progress.show();
+
+
+    threadCleaner->startThread();
+    while (threadCleaner->isRunning())
+    {
+        QApplication::processEvents();
+    }
+
+    update(); // refresh widget
+}
+
+//=======================================================================
+//=======================================================================
+void MaskEditorWidget::clean()
+{
+    if (_rngImg.isNull())
+    {
+        QMessageBox::warning(this, "Mask Editor Clean", "You must load or import data first to then clean it.");
+        return;
+    }
+
+    //Perform any desired cleaning functions
+    QString fpath = UtlQt::filePath(_rngImg->getFileName());
+    DlgClean options(_rngImg->getImgType(), fpath);
     if (options.exec() != QDialog::Accepted || !options.haveMod())
     {
         return;
@@ -367,12 +566,18 @@ void MaskEditorWidget::clean()
 }
 
 //=======================================================================
+// 3 prog steps
 //=======================================================================
-bool MaskEditorWidget::saveMask()
+bool MaskEditorWidget::saveMask(IProgress *prog)
 {
+    QMutexLocker lock(&_imgLock);
+
     if (_rngImg.isNull()) return false;
 
-    QApplication::setOverrideCursor(Qt::WaitCursor);
+    if (!prog)
+    {
+        QApplication::setOverrideCursor(Qt::WaitCursor);
+    }
 
     _modified = true;
 
@@ -396,13 +601,20 @@ bool MaskEditorWidget::saveMask()
             }
         }
     }
+
+    // prog update
+    if (prog) prog->progStep();
+
     //Redo the rotation.
     rot = QMatrix();
     rot.rotate(90);
-    _maskImg = _maskImg.transformed(rot);
+    _maskImg = _maskImg.transformed(rot) ;
     temp = _textureWidth;
     _textureWidth = _textureHeight;
     _textureHeight = temp;
+
+    // prog update
+    if (prog) prog->progStep();
 
     //Create new range image and delete old one.
     //Make mutable copies of the depth, texture, csys.
@@ -425,8 +637,14 @@ bool MaskEditorWidget::saveMask()
 
     _rngImg = PRangeImage(newImg);
 
+    // prog update
+    if (prog) prog->progStep();
 
-    QApplication::restoreOverrideCursor();
+    if (!prog)
+    {
+        QApplication::restoreOverrideCursor();
+    }
+
     return true;
 }
 

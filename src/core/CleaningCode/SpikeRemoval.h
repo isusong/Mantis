@@ -40,6 +40,8 @@ using namespace std;
  * @author Song Zhang
  */
 
+class IProgress;
+
 class CSpikeRemoval
 {
 public:
@@ -49,7 +51,7 @@ public:
 	///isVerify=false modifies depth values, isVerify=true does not.
 	void PolyLineRemoval(const float *xData, const float *yData, float *zData, 
 		unsigned char *maskData, float thresh, float thresh2, int poly_order, 
-		int width, int height, bool isVerify = true);
+        int width, int height, bool isVerify = true, IProgress *prog=NULL);
 
 	///Quickly perform linear regression up to 19th order.
 	/**

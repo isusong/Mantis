@@ -35,6 +35,7 @@
 #include <QPainter>
 #include <cmath>
 #include "logger.h"
+#include "UtlQt3d.h"
 
 #define CONVERT 1E6 ///Convert al3d from meters to um
 
@@ -86,7 +87,8 @@ RangeImage::RangeImage(const RangeImage& other,
 	QObject(parent)
 {
 	//Data assignment
-    _imgType = ImgType_Unk;
+    _imgType = other.getImgType();
+    _fileName = other.getFileName();
     _width = other.getWidth();
     _height = other.getHeight();
     _pixelSizeX = other.getPixelSizeX();
@@ -161,7 +163,7 @@ bool RangeImage::loadFile(const QString& fname, bool iconOnly)
     else
     {
         fileReader >> _width >> _height >> _pixelSizeX >> _pixelSizeY >> _imgType;
-        if (_imgType != ImgType_Tip && _imgType != ImgType_Plt)
+        if (_imgType < ImgType_Min || _imgType > ImgType_Max)
         {
             LogError("Error loading file: %s, unsupported image type: %d", fname.toStdString().c_str(), _imgType);
             guessImgType(fname);
@@ -178,6 +180,8 @@ bool RangeImage::loadFile(const QString& fname, bool iconOnly)
     _dataNull = !isConsistent();
 
     _fileName = fname;
+
+    logInfo();
 
     return true;
 }
@@ -462,6 +466,13 @@ const QImage& RangeImage::getTexture() const
 
 //=======================================================================
 //=======================================================================
+void RangeImage::setMask(const QBitArray &ba)
+{
+    _mask = ba;
+}
+
+//=======================================================================
+//=======================================================================
 const QBitArray& RangeImage::getMask() const
 {
     return _mask;
@@ -499,6 +510,27 @@ bool RangeImage::isPlate() const
 
 //=======================================================================
 //=======================================================================
+bool RangeImage::isKnife() const
+{
+    return (_imgType == ImgType_Knf);
+}
+
+//=======================================================================
+//=======================================================================
+bool RangeImage::isBullet() const
+{
+    return (_imgType == ImgType_Bul);
+}
+
+//=======================================================================
+//=======================================================================
+bool RangeImage::isUnkType() const
+{
+    return (_imgType == ImgType_Unk);
+}
+
+//=======================================================================
+//=======================================================================
 void RangeImage::setImgType(EImgType type)
 {
     _imgType = type;
@@ -506,7 +538,7 @@ void RangeImage::setImgType(EImgType type)
 
 //=======================================================================
 //=======================================================================
-RangeImage::EImgType RangeImage::getImgType()
+RangeImage::EImgType RangeImage::getImgType() const
 {
     return (RangeImage::EImgType)_imgType;
 }
@@ -692,6 +724,8 @@ RangeImage* RangeImage::importFromAl3d(const QString& fname, const QString& texf
 		//emit warningMessage(warning);
 		return NULL;
 	}
+
+
 	for (int i = 0; i < width*height; ++i)
 		depth.push_back(depthData[i]*CONVERT);
 
@@ -916,5 +950,7 @@ Profile* RangeImage::getColumn(int idx)
 //=======================================================================
 void RangeImage::logInfo()
 {
-    LogTrace("RangeImage - width: %d, height: %d, pixelSizeX: %.2f, pixelSizeY: %.2f", _width, _height, _pixelSizeX, _pixelSizeY);
+    LogTrace("RangeImage - filename: %s", _fileName.toStdString().c_str());
+    LogTrace("RangeImage - width: %d, height: %d, pixelSizeX: %.2f, pixelSizeY: %.2f, type: %d", _width, _height, _pixelSizeX, _pixelSizeY, _imgType);
+    UtlQt3d::logMatrix("RangeImage - coordinatesys: ", _coordinateSystem);
 }

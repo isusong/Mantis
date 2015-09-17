@@ -62,8 +62,12 @@ public:
     enum EImgType
     {
         ImgType_Unk = 0,
+        ImgType_Min = 1,
         ImgType_Tip = 1,
         ImgType_Plt = 2,
+        ImgType_Knf = 3,
+        ImgType_Bul = 4,
+        ImgType_Max = 4
     };
 
 public:
@@ -117,7 +121,6 @@ public:
 	 */
     static RangeImage* importFromAl3d(const QString& fname, const QString& texfname = "");
 
-	//Getters.
     ///Get iocn.
     const QImage& getIcon() const { return _icon; }
 	///Get depth. (Implicitly shared.)
@@ -125,6 +128,7 @@ public:
 	///Get the texture. (Implicitly shared.)
     const QImage& getTexture() const;
 	///Get the mask. (Implicitly shared.)
+    void setMask(const QBitArray &ba);
     const QBitArray& getMask() const;
 	///Get the coordinateSystem matrix.
     inline const QMatrix4x4& getCoordinateSystemMatrix() const {return _coordinateSystem;}
@@ -134,8 +138,14 @@ public:
 
     bool isTip() const;
     bool isPlate() const;
+    bool isKnife() const;
+    bool isBullet() const;
+    bool isUnkType() const;
+
     void setImgType(EImgType type);
-    EImgType getImgType();
+    EImgType getImgType() const;
+    QString getQualityMapFile() const { return _qualityMapFile; }
+    void setQualityMapFile(const QString &file) { _qualityMapFile = file; }
 
 public slots:
 	//Some functions are here so that you can script them.
@@ -219,6 +229,8 @@ protected:
   QMatrix4x4 _coordinateSystem;
 
   int _imgType;
+
+  QString _qualityMapFile;
 };
 
 Q_DECLARE_METATYPE(RangeImage*)

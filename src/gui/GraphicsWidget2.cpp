@@ -730,6 +730,36 @@ QPointF GraphicsWidget2::screenToNDC(const QPoint& point)
 
 //=======================================================================
 //=======================================================================
+float GraphicsWidget2::computeZ(ModelData *md1, ModelData *md2, int *mdUsed)
+{
+    if (!md1->isValid() && !md2->isValid()) return 0;
+
+    float z1 = -99999999, z2 = -99999999, zuse = 0;
+    if (md1->isValid())
+    {
+        z1 = 1.5*md1->bbY/(2*qTan(FOVY/2));
+    }
+    if (md2->isValid())
+    {
+        z2 = 1.5*md2->bbY/(2*qTan(FOVY/2));
+    }
+
+    // use larger z, or less zoom, to pick biggest model and keep zoom factor the same
+    zuse = z1;
+    *mdUsed = 1;
+    if (z2 > z1)
+    {
+        zuse = z2;
+        *mdUsed = 2;
+    }
+
+    if (md1->isValid()) md1->zRecommendedView = zuse;
+    if (md2->isValid()) md2->zRecommendedView = zuse;
+    return zuse;
+}
+
+//=======================================================================
+//=======================================================================
 void GraphicsWidget2::setModel(PGenericModel newModel, int mnum)
 {
     ModelData *md = getModelData(mnum);
@@ -740,6 +770,40 @@ void GraphicsWidget2::setModel(PGenericModel newModel, int mnum)
     md->bbX = bbExtent.x();
     md->bbY = bbExtent.y();
     md->bbZ = bbExtent.z();
+
+
+    //Set up camera.
+    md->rot = QVector3D(0,0,0);
+    md->trans = QVector3D(0,0,0);
+
+    ModelData *md2 = NULL;
+    if (mnum == 1) md2 = getModelData(0);
+    else md2 = getModelData(1);
+
+    //_sceneRotation = QMatrix4x4();
+    //_sceneTranslation = QMatrix4x4();
+    //md->zRecommendedView = 1.5*md->bbY/(2*qTan(FOVY/2));
+    //_sceneTranslation.translate(0, 0, -_zRecommendedView);
+    //_trans.setZ(-_zRecommendedView);
+
+    int mdUsed = -1;
+    computeZ(md, md2, &mdUsed);
+
+    emit onChangedTranslationMouse(md->id, md->trans);
+    emit onChangedRotationMouse(md->id, md->rot);
+
+    LogTrace("GraphicsWidget2::setModel - bbox size: %.2f, %.2f, %.2f, zView: %.2f", md->bbX, md->bbY, md->bbZ, md->zRecommendedView);
+
+    /*
+    ModelData *md = getModelData(mnum);
+    md->model = newModel;
+
+    //Cache bounding box.
+    QVector3D bbExtent = md->model->getBbMax() - md->model->getBbMin();
+    md->bbX = bbExtent.x();
+    md->bbY = bbExtent.y();
+    md->bbZ = bbExtent.z();
+
 
     //Set up camera.
     md->rot = QVector3D(0,0,0);
@@ -752,8 +816,13 @@ void GraphicsWidget2::setModel(PGenericModel newModel, int mnum)
     //_sceneTranslation.translate(0, 0, -_zRecommendedView);
     //_trans.setZ(-_zRecommendedView);
 
+    //md->zRecommendedView = 2711.77;
+
     emit onChangedTranslationMouse(md->id, md->trans);
     emit onChangedRotationMouse(md->id, md->rot);
+
+    LogTrace("GraphicsWidget2::setModel - bbox size: %.2f, %.2f, %.2f, zView: %.2f", md->bbX, md->bbY, md->bbZ, md->zRecommendedView);
+    */
 }
 
 //=======================================================================

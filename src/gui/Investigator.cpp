@@ -70,6 +70,8 @@ Investigator::Investigator(QWidget* parent): QMainWindow(parent),
     _openMaskEditorAction = new QAction(this);
     _importTipAction = new QAction(this);
     _importPlateAction = new QAction(this);
+    _importKnifeAction = new QAction(this);
+    _importBulletAction = new QAction(this);
     _updateMtFiles = new QAction(this);
     _viewMenu = new QMenu(tr("&View"), this);
     _toolsMenu = new QMenu(tr("&Tools"), this);
@@ -90,6 +92,8 @@ Investigator::Investigator(QWidget* parent): QMainWindow(parent),
     _openMaskEditorAction->setText(tr("Open Mask Editor and Cleaner"));
     _importTipAction->setText(tr("Import Tip"));
     _importPlateAction->setText(tr("Import Plate"));
+    _importKnifeAction->setText(tr("Import Knife"));
+    _importBulletAction->setText(tr("Import Bullet"));
     _updateMtFiles->setText(tr("Update MT Files to Latest &Version"));
 
 
@@ -192,6 +196,8 @@ void Investigator::makeConnections()
     result = connect(_openMaskEditorAction, SIGNAL(triggered()), this, SLOT(openMaskEditor()));
     result = connect(_importTipAction, SIGNAL(triggered()), this, SLOT(importTip()));
     result = connect(_importPlateAction, SIGNAL(triggered()), this, SLOT(importPlate()));
+    result = connect(_importKnifeAction, SIGNAL(triggered()), this, SLOT(importKnife()));
+    result = connect(_importBulletAction, SIGNAL(triggered()), this, SLOT(importBullet()));
     result = connect(_updateMtFiles, SIGNAL(triggered()), this, SLOT(updateMtFiles()));
 
     result = connect(_tileAction, SIGNAL(triggered()), _area, SLOT(tileSubWindows()));
@@ -223,6 +229,8 @@ void Investigator::assemble()
     _fileMenu->addAction(_openMaskEditorAction);
     _fileMenu->addAction(_importTipAction);
     _fileMenu->addAction(_importPlateAction);
+    _fileMenu->addAction(_importKnifeAction);
+    _fileMenu->addAction(_importBulletAction);
     _fileMenu->addSeparator();
     _fileMenu->addAction(_updateMtFiles);
 
@@ -450,7 +458,11 @@ void Investigator::showSplitComparison()
         }
 
         PRangeImage rimg = subs[i]->getRangeImage();
-        window->setRangeImg(rimg, i, isTip);
+        if (rimg->isUnkType())
+        {
+            rimg->setImgType(RangeImage::ImgType_Tip);
+        }
+        window->setRangeImg(rimg, i);
     }
 
     //_splitCmpViewCtrls->connectSplitCmp(window);
@@ -613,25 +625,41 @@ void Investigator::openMaskEditor()
 //=======================================================================
 void Investigator::importTip()
 {
-    PRangeImage img = QMdiMaskEditor::import(getTopMaskEditor(), RangeImage::ImgType_Tip);
-    if (img.isNull()) return;
-
-    loadMaskEditor(img);
+    import(RangeImage::ImgType_Tip);
 }
 
 //=======================================================================
 //=======================================================================
 void Investigator::importPlate()
 {
-    PRangeImage img = QMdiMaskEditor::import(getTopMaskEditor(), RangeImage::ImgType_Plt);
-    if (img.isNull()) return;
-
-    loadMaskEditor(img);
+    import(RangeImage::ImgType_Plt);;
 }
 
 //=======================================================================
 //=======================================================================
-void Investigator::loadMaskEditor(PRangeImage img)
+void Investigator::importKnife()
+{
+    import(RangeImage::ImgType_Knf);
+}
+
+//=======================================================================
+//=======================================================================
+void Investigator::importBullet()
+{
+    import(RangeImage::ImgType_Bul);
+}
+
+//=======================================================================
+//=======================================================================
+void Investigator::import(RangeImage::EImgType type)
+{
+    QMdiMaskEditor *wnd = loadMaskEditor(PRangeImage());
+    wnd->import(type);
+}
+
+//=======================================================================
+//=======================================================================
+QMdiMaskEditor* Investigator::loadMaskEditor(PRangeImage img)
 {
     QMdiMaskEditor *wnd = getTopMaskEditor();
     if (wnd == NULL)
@@ -640,10 +668,14 @@ void Investigator::loadMaskEditor(PRangeImage img)
         wnd->init(img);
         _area->addSubWindow(wnd);
         _area->setActiveSubWindow(wnd);
-        return;
+
+        connect(wnd, SIGNAL(onFileSaved(QString)), this, SLOT(slotOnMaskEditorFileSaved(QString)));
+        return wnd;
     }
 
     // TODO: need to make sure no data has been modified, if so ask to save.
+
+    return wnd;
 }
 
 //=======================================================================
@@ -1336,4 +1368,13 @@ void Investigator::slotToggleShowStartupDlg()
 {
     App::settings()->inv().showStartupDlg = !App::settings()->inv().showStartupDlg;
     _actionViewShowStartupDlg->setChecked(App::settings()->inv().showStartupDlg);
+}
+
+//=======================================================================
+//=======================================================================
+void Investigator::slotOnMaskEditorFileSaved(QString file)
+{
+    if (_splitCmpThumbLoader == NULL) return;
+
+    _splitCmpThumbLoader->validateInsert(file);
 }

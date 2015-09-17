@@ -137,6 +137,15 @@ bool RangeImageRenderer::getIsTip()
 
 //=======================================================================
 //=======================================================================
+int RangeImageRenderer::getImgType()
+{
+    if (_model.isNull()) return RangeImage::ImgType_Unk;
+
+    return _model->getImgType();
+}
+
+//=======================================================================
+//=======================================================================
 bool RangeImageRenderer::setDrawMark(bool draw)
 {
     if (!_tipData.vtip) return false;
@@ -1468,6 +1477,14 @@ void RangeImageRenderer::setProfileTip(PProfile profile)
     //_tipData.draw = true;
     _tipData.profile = profile;
     _tipData.shaderPrev = _currentShaderProgram;
+}
+
+//=======================================================================
+//=======================================================================
+bool RangeImageRenderer::isValid()
+{
+    if (_model.isNull()) return false;
+    return true;
 }
 
 //=======================================================================

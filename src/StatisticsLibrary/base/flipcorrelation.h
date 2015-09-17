@@ -81,6 +81,8 @@ class MaxCorrelationWithFlips {
 							  float maxShiftPercentage,
                               bool checkFlip = false) const 
    {
+       Q_UNUSED(checkFlip);
+
        if (length1 < 0 || length2 < 0) {
            std::ostringstream what;
            what << "length1 or length2 < 0: [length1=" << length1 << ", length2=" << length2 << "]" ;

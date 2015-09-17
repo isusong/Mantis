@@ -80,6 +80,7 @@ public:
     virtual void setSearchBox(int y, int height, int dataLen, bool draw=true) { Q_UNUSED(y); Q_UNUSED(height); Q_UNUSED(dataLen); Q_UNUSED(draw);}
     virtual void setSearchBoxColor(float r, float g, float b, float a) { Q_UNUSED(r); Q_UNUSED(g); Q_UNUSED(b); Q_UNUSED(a); }
 
+    virtual bool isValid() { return true; }
     virtual void logInfo();
 
   signals:

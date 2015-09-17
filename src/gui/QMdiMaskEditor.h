@@ -19,6 +19,7 @@ public:
     void init(PRangeImage img);
 
     void setImg(PRangeImage img);
+    void import(RangeImage::EImgType type);
 
     bool isModified();
 
@@ -28,11 +29,14 @@ public:
     static PRangeImage import(QMdiMaskEditor *pthis, RangeImage::EImgType type);
     
 signals:
-    
+    void onFileSaved(QString path);
+
 protected slots:
     void slotDocOpen();
     void slotImportTip();
     void slotImportPlt();
+    void slotImportKnf();
+    void slotImportBul();
     void slotDocSave();
     void slotDocSaveAs();
     void slotClean();
@@ -46,11 +50,14 @@ protected:
     void makeConnections();
     bool saveImg(const QString &file);
 
+
 protected:
     QToolBar *_tb;
     QAction *_actionDocOpen;
     QAction *_actionImportTip;
     QAction *_actionImportPlt;
+    QAction *_actionImportKnf;
+    QAction *_actionImportBul;
     QAction *_actionDocSave;
     QAction *_actionDocSaveAs;
     QAction *_actionClean;

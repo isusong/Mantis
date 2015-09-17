@@ -33,8 +33,12 @@
 #include <QString>
 #include <QPoint>
 #include <QSettings>
+#include <QMutex>
 #include "SettingsStore.h"
 #include "../core/RangeImage.h"
+#include "DlgClean.h"
+
+class IProgress;
 
 class MaskEditorWidget : public QWidget
 {
@@ -53,9 +57,11 @@ public:
     MaskEditorWidget(QWidget* parent=NULL);
     virtual ~MaskEditorWidget();
 
-    void setImg(PRangeImage img);
+    void setImg(PRangeImage img, IProgress *prog=NULL);
     PRangeImage getImg() { return _rngImg; }
+    PRangeImage getImgCopy();
     void clean();
+    void cleanWithProgress();
     bool saveFile(const QString &file);
 
     void maskClear();
@@ -67,22 +73,28 @@ public:
 
     //Screen Capture Function
     bool isModified(); //Was the file modified?
+    void setModified(bool m);
 
     float brushSize();
 
     void setViewTool(EViewTool vt);
     void refreshSettings();
 
+    int computeProgCount();
+
+    DlgClean* getCleanOptions() { return _dlgClean.get(); }
+    bool saveMask(IProgress *prog=NULL);
+
+    QMutex* getImgLock(){ return &_imgLock; }
 public slots:
 
 protected:
     void paintEvent(QPaintEvent* event); //Draw the scene
     void drawTo(const QPoint endpoint); //Function for drawing into mask.
 
-    bool saveMask();
-
 protected:
-        //Member variables.
+
+    std::tr1::shared_ptr<DlgClean> _dlgClean;
     PRangeImage _rngImg;
     QImage _maskImg;
     QImage _texture;
@@ -99,6 +111,8 @@ protected:
     EViewTool _vt;
 
     bool _modified; //modified?
+
+    QMutex _imgLock;
 };
 
 

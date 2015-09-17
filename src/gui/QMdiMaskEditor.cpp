@@ -7,6 +7,7 @@
 #include <QToolBar>
 #include <QVBoxLayout>
 #include <QApplication>
+#include "../core/UtlQt.h"
 
 //=======================================================================
 //=======================================================================
@@ -49,6 +50,8 @@ void QMdiMaskEditor::init(PRangeImage img)
     _actionDocOpen = _tb->addAction(QIcon(":/controls/Icons/document-open.png"), "Open");
     _actionImportTip = _tb->addAction(QIcon(":/controls/Icons/import-tip.png"), "Import Tip");
     _actionImportPlt = _tb->addAction(QIcon(":/controls/Icons/import-plate.png"), "Import Plate");
+    _actionImportKnf = _tb->addAction(QIcon(":/controls/Icons/import-knife.png"), "Import Knife");
+    _actionImportBul = _tb->addAction(QIcon(":/controls/Icons/import-bullet.png"), "Import Bullet");
     _actionDocSave = _tb->addAction(QIcon(":/controls/Icons/document-save.png"), "Save");
     _actionDocSaveAs = _tb->addAction(QIcon(":/controls/Icons/document-save-as.png"), "Save As");
     _actionClean = _tb->addAction(QIcon(":/controls/Icons/edit-clear.png"), "Clean");
@@ -81,6 +84,8 @@ void QMdiMaskEditor::makeConnections()
     result = connect(_actionDocOpen, SIGNAL(triggered()), this, SLOT(slotDocOpen()));
     result = connect(_actionImportTip, SIGNAL(triggered()), this, SLOT(slotImportTip()));
     result = connect(_actionImportPlt, SIGNAL(triggered()), this, SLOT(slotImportPlt()));
+    result = connect(_actionImportKnf, SIGNAL(triggered()), this, SLOT(slotImportKnf()));
+    result = connect(_actionImportBul, SIGNAL(triggered()), this, SLOT(slotImportBul()));
     result = connect(_actionDocSave, SIGNAL(triggered()), this, SLOT(slotDocSave()));
     result = connect(_actionDocSaveAs, SIGNAL(triggered()), this, SLOT(slotDocSaveAs()));
     result = connect(_actionClean, SIGNAL(triggered()), this, SLOT(slotClean()));
@@ -133,20 +138,28 @@ void QMdiMaskEditor::slotDocOpen()
 //=======================================================================
 void QMdiMaskEditor::slotImportTip()
 {
-    PRangeImage img = import(this, RangeImage::ImgType_Tip);
-    if (img.isNull()) return;
-
-    setImg(img);
+    import(RangeImage::ImgType_Tip);
 }
 
 //=======================================================================
 //=======================================================================
 void QMdiMaskEditor::slotImportPlt()
 {
-    PRangeImage img = import(this, RangeImage::ImgType_Plt);
-    if (img.isNull()) return;
+    import(RangeImage::ImgType_Plt);
+}
 
-    setImg(img);
+//=======================================================================
+//=======================================================================
+void QMdiMaskEditor::slotImportKnf()
+{
+    import(RangeImage::ImgType_Knf);
+}
+
+//=======================================================================
+//=======================================================================
+void QMdiMaskEditor::slotImportBul()
+{
+    import(RangeImage::ImgType_Bul);
 }
 
 //=======================================================================
@@ -158,6 +171,38 @@ void QMdiMaskEditor::slotDocSave()
         slotDocSaveAs();
         return;
     }
+
+    // make sure a clean file has an _c
+    QString fname = _maskEditor->getImg()->getFileName();
+    if (!fname.contains("_c."))
+    {
+        QString dir = UtlQt::filePath(fname);
+        fname = UtlQt::fileName(fname);
+        fname += "_c.mt";
+        fname = UtlQt::pathCombine(dir, fname);
+        _maskEditor->getImg()->setFileName(fname);
+    }
+
+    if (UtlQt::fileExists(_maskEditor->getImg()->getFileName()))
+    {
+        QMessageBox msgBox;
+        msgBox.setText("File overwrite warning.");
+        msgBox.setInformativeText("The file " + _maskEditor->getImg()->getFileName() + " already exists.\n\nDo you want to overwrite it?");
+        msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+        msgBox.setDefaultButton(QMessageBox::Cancel);
+        int ret = msgBox.exec();
+        if (ret == QMessageBox::Cancel)
+        {
+            return;
+        }
+        if (ret == QMessageBox::No)
+        {
+            slotDocSaveAs();
+            return;
+        }
+    }
+
+
 
     saveImg(_maskEditor->getImg()->getFileName());
 }
@@ -192,7 +237,8 @@ void QMdiMaskEditor::slotDocSaveAs()
 //=======================================================================
 void QMdiMaskEditor::slotClean()
 {
-    _maskEditor->clean();
+    //_maskEditor->clean();
+    _maskEditor->cleanWithProgress();
 }
 
 //=======================================================================
@@ -247,6 +293,7 @@ bool QMdiMaskEditor::saveImg(const QString &file)
     if (_maskEditor->saveFile(file))
     {
         _lastSaveResult = QMessageBox::Yes;
+        emit onFileSaved(file);
         return true;
     }
 
@@ -326,6 +373,17 @@ PRangeImage QMdiMaskEditor::loadMt(QMdiMaskEditor *pthis)
 
 //=======================================================================
 //=======================================================================
+void QMdiMaskEditor::import(RangeImage::EImgType type)
+{
+    PRangeImage img = import(this, type);
+    if (img.isNull()) return;
+
+    setImg(img);
+    _maskEditor->setModified(true);
+}
+
+//=======================================================================
+//=======================================================================
 PRangeImage QMdiMaskEditor::import(QMdiMaskEditor *pthis, RangeImage::EImgType type)
 {
     if (pthis != NULL)
@@ -336,19 +394,27 @@ PRangeImage QMdiMaskEditor::import(QMdiMaskEditor *pthis, RangeImage::EImgType t
         }
     }
 
-    QString openFileTitle, openTxTitle;
-    if (type == RangeImage::ImgType_Tip)
+    QString openFileTitle, openTxTitle, openQltTitle;
+    QString typeName = "Tip";
+
+    switch (type)
     {
-        openFileTitle = tr("Import AL3D Tip File");
-        openTxTitle = tr("Import AL3D Tip Texture");
-    }
-    else
-    {
-        openFileTitle = tr("Import AL3D Plate File");
-        openTxTitle = tr("Import AL3D Plate Texture");
+    case RangeImage::ImgType_Plt:
+        typeName = "Plate";
+        break;
+    case RangeImage::ImgType_Knf:
+        typeName = "Knife";
+        break;
+    case RangeImage::ImgType_Bul:
+        typeName = "Bullet";
+        break;
     }
 
-    QString filenameAl3d = QFileDialog::getOpenFileName(App::mainWnd(), openFileTitle, App::settings()->inv().lastDirImport, tr("All files (*.*);;AL3D (*.al3d)" ));
+    openFileTitle = QString(tr("Import AL3D %1 File")).arg(typeName);
+    openTxTitle = QString(tr("Import AL3D %1 Texture")).arg(typeName);
+    openQltTitle = QString(tr("Import AL3D %1 Quality Map")).arg(typeName);
+
+    QString filenameAl3d = QFileDialog::getOpenFileName(App::mainWnd(), openFileTitle, App::settings()->inv().lastDirImport, tr("AL3D (*.al3d);;All files (*.*)" ));
         //tr("All files (*.*);;AL3D (*.al3d);;XYZM (*.xyzm)" ));
     if (filenameAl3d.isNull()) return PRangeImage(); //user canceled.
 
@@ -356,11 +422,53 @@ PRangeImage QMdiMaskEditor::import(QMdiMaskEditor *pthis, RangeImage::EImgType t
     QFileInfo fileInfo(filenameAl3d);
     App::settings()->inv().lastDirImport = fileInfo.absolutePath();
 
-    QString filenameTx = QFileDialog::getOpenFileName(App::mainWnd(),
-        openTxTitle, App::settings()->inv().lastDirImport,
-        tr("All files (*.*);;JPEG (*.jpg *.jpeg);;PNG (*.png)" ));
+    // image extensions for texture and quality maps
+    std::vector<QString> exts; exts.push_back("bmp"); exts.push_back("png");
 
-    if (filenameTx.isNull()) return PRangeImage(); //user canceled.
+    // find the texture
+    QString filenameTx;
+    for (size_t i=0; i<exts.size(); i++)
+    {
+        QString name("texture.");
+        name += exts[i];
+        filenameTx = UtlQt::pathCombine(fileInfo.absolutePath(), name);
+        if (UtlQt::fileExists(filenameTx)) break;
+
+        filenameTx = "";
+    }
+
+    if (filenameTx.size() <= 0)
+    {
+
+        filenameTx = QFileDialog::getOpenFileName(App::mainWnd(), openTxTitle, App::settings()->inv().lastDirImport,
+            tr("Image Files (*.jpg *.jpeg *.png *.bmp *.tif *.tiff);;BMP (*.bmp);;PNG (*.png);;JPEG (*.jpg *.jpeg);;All files (*.*)" ));
+
+        if (filenameTx.isNull()) return PRangeImage(); //user canceled.
+    }
+
+    // find the qualitymap
+    QString filenameQlt;
+    for (size_t i=0; i<exts.size(); i++)
+    {
+        QString name("qualitymap.");
+        name += exts[i];
+        filenameQlt = UtlQt::pathCombine(fileInfo.absolutePath(), name);
+        if (UtlQt::fileExists(filenameQlt)) break;
+
+        filenameQlt = "";
+    }
+
+    if (filenameQlt.size() <= 0)
+    {
+
+        filenameQlt = QFileDialog::getOpenFileName(App::mainWnd(), openQltTitle, App::settings()->inv().lastDirImport,
+            tr("Image Files (*.jpg *.jpeg *.png *.bmp *.tif *.tiff);;JPEG (*.jpg *.jpeg);;PNG (*.png);;All files (*.*)" ));
+
+        if (filenameQlt.isNull())
+        {
+            filenameQlt = "";
+        }
+    }
 
 
     QApplication::setOverrideCursor(Qt::WaitCursor);
@@ -375,6 +483,14 @@ PRangeImage QMdiMaskEditor::import(QMdiMaskEditor *pthis, RangeImage::EImgType t
     PRangeImage rimg(pimg);
     rimg->setImgType(type);
     rimg->setFileName(""); // empty file name on import
+
+    QString fpath = UtlQt::filePath(filenameAl3d);
+    QString fname = UtlQt::fileName(filenameAl3d);
+    fname += ".mt";
+    fname = UtlQt::pathCombine(fpath, fname);
+    rimg->setFileName(fname);
+
+    rimg->setQualityMapFile(filenameQlt);
 
     QApplication::restoreOverrideCursor();
 

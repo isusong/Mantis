@@ -28,6 +28,7 @@
 #include <cstdlib>
 #include <QFile>
 #include <QTextStream>
+#include <QSplashScreen>
 #include "../core/RangeImage.h"
 #include "../core/CleaningCode/Clean.h"
 #include "../core/ScriptInterface.h"
@@ -41,6 +42,7 @@
 #include "../gui/Investigator.h"
 #include "../gui/App.h"
 #include "../gui/DlgStartUp.h"
+#include "../core/UtlQt.h"
 #include <QThread>
 #include <cstdio>
 
@@ -130,6 +132,7 @@ int main(int argc, char** argv)
     scripter.moveToThread(thread);
 	thread->start();
 
+
 	//Start the GUI.
     int ret = app.exec();
 
@@ -158,6 +161,20 @@ int runInvestigator(int argc, char** argv)
     QApplication app(argc, argv);
     initCoreApp();
 
+    // show splash screen
+    QPixmap pixmap(":/general/Icons/MantisSplash.png");
+    if (pixmap.isNull())
+    {
+        LogError("Failed to load splash image");
+    }
+    //QSplashScreen splash(pixmap, Qt::WindowStaysOnTopHint);
+    QSplashScreen splash(pixmap);
+    splash.show();
+    app.processEvents();
+
+    UtlQt::delay(5);
+
+
     // init persistent settings
     SettingsStore settings;
     settings.loadAll();
@@ -176,6 +193,7 @@ int runInvestigator(int argc, char** argv)
     gui->setWindowTitle("Mantis Investigator");
     gui->show();
 
+    splash.finish(gui); // kill the splash
     int ret = app.exec();
 
     settings.saveAll();

@@ -36,6 +36,7 @@ HEADERS		+= mainWindow.h \
 			   ../core/CleaningCode/FindValidMarkRange.h \
 			   ../core/CleaningCode/ManipulatePlate.h \
 			   ../core/CleaningCode/ComputeFlatScrewdriverTipCsys.h \
+                           ../core/logger.h \
 			   cleaningDialog.h
 SOURCES		+= mainWindow.cpp \
 			   graphicsWidget.cpp \
@@ -50,6 +51,7 @@ SOURCES		+= mainWindow.cpp \
 			   ../core/CleaningCode/FindValidMarkRange.cpp \
 			   ../core/CleaningCode/ManipulatePlate.cpp \
 			   ../core/CleaningCode/ComputeFlatScrewdriverTipCsys.cpp \
+                           ../core/logger.cpp \
 			   cleaningDialog.cpp \
 			   main.cpp
 FORMS		+= mainWindowForm.ui \

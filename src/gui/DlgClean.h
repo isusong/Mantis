@@ -12,7 +12,7 @@ class DlgClean : public QDialog
     Q_OBJECT
     
 public:
-    explicit DlgClean(bool isTip, QWidget *parent = 0);
+    explicit DlgClean(int dataType, const QString &imgFolder, QWidget *parent = 0);
     ~DlgClean();
     
     bool haveMod();
@@ -25,11 +25,23 @@ public:
     bool getPltCoordSys();
     bool getPltDetrend();
 
+    bool getThresholdRun();
+    QSharedPointer<QImage> getQualityMap();
+    int getThresholdTx();
+    int getThresholdQlt();
 
+public slots:
+    virtual void accept();
 
+    void slotOnBtnBrowseQltMap();
+
+protected:
+    void makeConnections();
 private:
     Ui::DlgClean *ui;
-    bool _isTip;
+    int _dataType;
+    QString _imgFolder;
+    QSharedPointer<QImage> _qualityMap;
 };
 
 #endif // DLGCLEAN_H

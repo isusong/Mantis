@@ -40,8 +40,11 @@
         <file>Icons/import-plate.png</file>
         <file>Icons/import-tip.png</file>
         <file>Icons/mask-clear.png</file>
+        <file>Icons/import-bullet.png</file>
+        <file>Icons/import-knife.png</file>
     </qresource>
     <qresource prefix="/general">
         <file>Icons/questionmark.png</file>
+        <file>Icons/MantisSplash.png</file>
     </qresource>
 </RCC>

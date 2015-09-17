@@ -1,11 +1,11 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#define VER_FILEVERSION             1.005
-#define VER_FILEVERSION_STR         "1.005\0"
+#define VER_FILEVERSION             1.007
+#define VER_FILEVERSION_STR         "1.007\0"
 
-#define VER_PRODUCTVERSION          1.005
-#define VER_PRODUCTVERSION_STR      "1.005\0"
+#define VER_PRODUCTVERSION          1.007
+#define VER_PRODUCTVERSION_STR      "1.007\0"
 
 #define VER_COMPANYNAME_STR         "Iowa State University"
 #define VER_FILEDESCRIPTION_STR     "Mantis"

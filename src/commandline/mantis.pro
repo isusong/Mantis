@@ -48,6 +48,9 @@ win32:LIBS += -lGLU32
 # CONFIG += debug
 CONFIG += console
 CONFIG += qwt
+CONFIG += c++11
+CONFIG += std=c++11
+CONFIG += stdlib=libc++
 
 RC_FILE = ../gui/mantis.rc
 
@@ -134,7 +137,8 @@ HEADERS += \
     ../gui/QMdiMaskEditor.h \
     ../gui/DlgClean.h \
     ../gui/App.h \
-    ../gui/DlgStartUp.h
+    ../gui/DlgStartUp.h \
+    ../gui/ThreadCleaner.h
 
 SOURCES += \
 	../core/RangeImage.cpp \
@@ -209,7 +213,8 @@ SOURCES += \
     ../gui/QMdiMaskEditor.cpp \
     ../gui/DlgClean.cpp \
     ../gui/App.cpp \
-    ../gui/DlgStartUp.cpp
+    ../gui/DlgStartUp.cpp \
+    ../gui/ThreadCleaner.cpp
 
 RESOURCES += ../core/core.qrc \
 			 ../gui/gui.qrc

@@ -1,9 +1,18 @@
 #include "UtlQt.h"
 #include <QDir>
+#include <QTime>
+#include <QCoreApplication>
 
 //=======================================================================
 //=======================================================================
 bool UtlQt::fileExists(const char *path)
+{
+    return fileExists(QString(path));
+}
+
+//=======================================================================
+//=======================================================================
+bool UtlQt::fileExists(const QString &path)
 {
     QFile file(path);
     if (file.exists()) return true;
@@ -24,6 +33,22 @@ QString UtlQt::fileName(const QString &fullpath)
 {
     QFileInfo fi(fullpath);
     return fi.baseName();
+}
+
+//=======================================================================
+//=======================================================================
+QString UtlQt::fileNameWithExt(const QString &fullpath)
+{
+    QFileInfo fi(fullpath);
+    return fi.fileName();
+}
+
+//=======================================================================
+//=======================================================================
+QString UtlQt::filePath(const QString &fullpath)
+{
+    QFileInfo fi(fullpath);
+    return fi.dir().path();
 }
 
 //=======================================================================
@@ -52,3 +77,13 @@ QString UtlQt::pathCombine(const QString &path1, const QString &path2)
     return QDir::cleanPath(path1 + QDir::separator() + path2);
 }
 
+//=======================================================================
+//=======================================================================
+void UtlQt::delay(int secs)
+{
+    QTime dieTime= QTime::currentTime().addSecs(secs);
+    while (QTime::currentTime() < dieTime)
+    {
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+    }
+}

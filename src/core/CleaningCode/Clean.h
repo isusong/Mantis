@@ -28,6 +28,8 @@
 #include "../RangeImage.h"
 #include <QObject>
 
+class IProgress;
+
 /**
  * This class forms a fake namespace that you can use with Qt Script.
  * These functions take in RangeImage files, clean them up, and affix
@@ -40,27 +42,6 @@
 class Clean: public QObject
 {
 	Q_OBJECT
-
-	//Member helper functions.
-	///Returns the maximum color component in the QRgb.
-	int maxGray(QRgb color);
-	///Threshold based on quality map and texture.
-	/**
-	 * Does not delete tip pointer.
-	 */
-	QBitArray threshold(RangeImage* tip, const QImage& qualityMap, 
-		int quality_threshold, int texture_threshold);
-	///Finds the border of the unmasked regions and chips away at it.
-	/**
-	 * @param lx Number of pixels to be chipped away on left boundary.
-	 * @param rx Number of pixels to be chipped away on right boundary.
-	 *
-	 * @param ty Number of pixels to be chipped away on top boundary.
-	 * @param by Number of pixels to be chipped away on bottom boundary
-	 */
-	void removeAdditionalBoundary(unsigned char* maskData, 
-		int imageWidth, int imageHeight, int lx, int rx, 
-		int ty, int by);
 
   public:
 	///Make a cleaner.
@@ -116,19 +97,47 @@ class Clean: public QObject
 	 * the depth.  WARNING: This modifies depth, but it
 	 * is for statistical purposes.
 	 */
-	RangeImage* detrend(RangeImage* mark);
+    RangeImage* detrend(RangeImage* mark, IProgress *prog=NULL);
 
 	///Move the coordinate system to the centroid
-	RangeImage* coordinateSystem2Centroid(RangeImage* mark);
+    RangeImage* coordinateSystem2Centroid(RangeImage* mark, IProgress *prog=NULL);
 
 	///Compute the coordinate system for a tip.
-	RangeImage* coordinateSystem4Tip(RangeImage* tip);
+    RangeImage* coordinateSystem4Tip(RangeImage* tip, IProgress *prog=NULL);
 
 	///Perform connected components.
-	RangeImage* connectedComponents(RangeImage* data);
+    RangeImage* connectedComponents(RangeImage* data, IProgress *prog=NULL);
 
 	///Perform seventh-order spike removal and hole-filling.
-	RangeImage* spikeRemovalHoleFilling(RangeImage* tip);
+    RangeImage* spikeRemovalHoleFilling(RangeImage* tip, IProgress *prog=NULL);
+
+    int thresholdMask(RangeImage* ri, const QImage *qualityMap, int quality_threshold, int texture_threshold, IProgress *prog=NULL);
+
+protected:
+    //Member helper functions.
+    ///Returns the maximum color component in the QRgb.
+    int maxGray(QRgb color);
+
+
+    ///Threshold based on quality map and texture.
+    /**
+     * Does not delete tip pointer.
+     */
+    QBitArray threshold(RangeImage* tip, const QImage& qualityMap, int quality_threshold, int texture_threshold, int *pixelsTurnedOff=NULL, IProgress *prog=NULL);
+
+
+
+    ///Finds the border of the unmasked regions and chips away at it.
+    /**
+     * @param lx Number of pixels to be chipped away on left boundary.
+     * @param rx Number of pixels to be chipped away on right boundary.
+     *
+     * @param ty Number of pixels to be chipped away on top boundary.
+     * @param by Number of pixels to be chipped away on bottom boundary
+     */
+    void removeAdditionalBoundary(unsigned char* maskData,
+        int imageWidth, int imageHeight, int lx, int rx,
+        int ty, int by);
 };
 
 #endif //!defined __CLEAN_H__

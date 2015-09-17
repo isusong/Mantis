@@ -29,6 +29,8 @@
 #include <cstring>
 #include <cmath>
 
+#include "../IProgress.h"
+
 #include <iostream>
 using std::cout;
 using std::endl;
@@ -41,15 +43,21 @@ CSpikeRemoval::~CSpikeRemoval(void)
 {
 }
 
+//=======================================================================
+// 24 progress steps
+//=======================================================================
 void CSpikeRemoval::PolyLineRemoval(const float *xData, const float *yData,
 	float *zData, unsigned char *maskData,
 	float thresh1, float thresh2, int poly_order, 
-	int width, int height, bool isVerfiy)
+    int width, int height, bool isVerfiy, IProgress *prog)
 {
 	m_imageWidth = width;
 	m_imageHeight = height;
 	unsigned char *lmask = new unsigned char[width * height];
 	memcpy(lmask, maskData, sizeof(lmask[0])*width * height);
+
+    // prog update
+    if (prog) prog->progStep();
 
 	vector<float>x,z;
 	vector<float>coeff;
@@ -70,6 +78,9 @@ void CSpikeRemoval::PolyLineRemoval(const float *xData, const float *yData,
 	//fclose (fp);
 
 	// vertical lines
+    // + 10 progsteps for this loop
+    int progcount = 0;
+    int iLastStep = 0;
 	for (int i = 0;  i <  m_imageWidth; i++)
 	{
 		x.clear();
@@ -127,11 +138,36 @@ void CSpikeRemoval::PolyLineRemoval(const float *xData, const float *yData,
 				maskData[id] = 0;
 			}
 		}
+
+        // prog percent update 10.. 10% updates = 100% and 10 progsteps
+        int tot = i - iLastStep;
+        float per = (float)tot / (float)m_imageWidth;
+        if (per >= .1) // is it 10 percent
+        {
+            if (progcount < 10)
+            {
+                if (prog) prog->progStep();
+                progcount++;
+            }
+
+            iLastStep = i;
+        }
 	}
 
+    if (progcount < 10)
+    {
+        // prog update
+        if (prog) prog->progStep(10 - progcount);
+    }
+
+    // prog update
+    if (prog) prog->progStep();
 
 	
-// Horizontal lines
+    // Horizontal lines
+    // + 10 progsteps for this loop
+    progcount = 0;
+    iLastStep = 0;
 	for (int i = 0;  i <  m_imageHeight; i++)
 	{
 		x.clear();
@@ -187,8 +223,31 @@ void CSpikeRemoval::PolyLineRemoval(const float *xData, const float *yData,
 				maskData[id] = 0;
 			}
 		}
+
+        // prog percent update 10.. 10% updates = 100% and 10 progsteps
+        int tot = i - iLastStep;
+        float per = (float)tot / (float)m_imageWidth;
+        if (per >= .1) // is it 10 percent
+        {
+            iLastStep = i;
+
+            if (progcount < 10)
+            {
+                if (prog) prog->progStep();
+                progcount++;
+            }
+        }
 	}
+
+    // prog percent update
+    if (progcount < 10)
+    {
+        // prog update
+        if (prog) prog->progStep(10 - progcount);
+    }
 	
+    // prog update
+    if (prog) prog->progStep();
 
 	// fill in those removed points vertically if not for testing
 	if (!isVerfiy)
@@ -299,6 +358,9 @@ void CSpikeRemoval::PolyLineRemoval(const float *xData, const float *yData,
 			}
 		}
 	}
+
+    // prog update
+    if (prog) prog->progStep();
 
 	coeff.clear();
 	z.clear();

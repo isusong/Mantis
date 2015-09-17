@@ -20,14 +20,14 @@ public:
     {
         QString filename;
         QString fullpath;
-        bool isTip;
+        int dataType;
         QVector3D tipAng;
         int plateCol;
         PProfile profile;
 
         ProInfo()
         {
-            isTip = false;
+            dataType = RangeImage::ImgType_Unk;
             tipAng = QVector3D(0,0,0);
             plateCol = 0;
         }
@@ -51,7 +51,7 @@ public:
 
     bool loadRangeImg(const QString &filename);
     bool loadRangeImg(const QString &filename, int viewer);
-    void setRangeImg(PRangeImage img, int viewer, bool isTip);
+    void setRangeImg(PRangeImage img, int viewer);
 
     RangeImageViewer* getViewer() { return _imgViewer; }
     GraphicsWidget2* getGraphics() { if (!_imgViewer) return NULL; return _imgViewer->getGraphicsWidget(); }
